@@ -1,0 +1,414 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  player
+  admin
+}
+
+enum UserStatus {
+  active
+  disabled
+  deleted
+}
+
+enum AuthAttemptKind {
+  signup
+  login
+}
+
+enum AuthAttemptResult {
+  success
+  invalid
+  rate_limited
+}
+
+enum MatchPhase {
+  group
+  round_of_32
+  round_of_16
+  quarter_final
+  semi_final
+  third_place
+  final
+}
+
+enum MatchStatus {
+  scheduled
+  live
+  paused
+  finished
+  postponed
+  cancelled
+}
+
+enum PublicationStatus {
+  draft
+  published
+  archived
+}
+
+enum KnockoutSlotSide {
+  home
+  away
+}
+
+enum QualificationStatus {
+  unknown
+  qualified_top_two
+  qualified_third_place
+  eliminated
+}
+
+enum PredictionPhaseGroup {
+  group
+  knockout
+  placement
+}
+
+enum PredictionSubmissionStatus {
+  draft
+  confirmed
+}
+
+enum PlacementPredictionKind {
+  champion
+  runner_up
+  third_place
+}
+
+model User {
+  id                    String     @id @default(uuid()) @db.Uuid
+  username              String
+  usernameNormalized    String     @unique @map("username_normalized")
+  displayName           String     @map("display_name")
+  passwordHash          String     @map("password_hash")
+  role                  UserRole   @default(player)
+  status                UserStatus @default(active)
+  deletedAt             DateTime?  @map("deleted_at")
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+  sessions              Session[]
+  publishedMatches      Match[]    @relation("PublishedMatches")
+  manualOverrideMatches Match[]    @relation("ManualOverrideMatches")
+  scoringRules          ScoringRule[]
+  appSettings           AppSetting[]
+  predictionSubmissions PredictionSubmission[]
+  matchPredictions      MatchPrediction[]
+  placementPredictions  PlacementPrediction[]
+  matchPredictionScores MatchPredictionScore[]
+  leaderboardSnapshots  LeaderboardSnapshot[]
+  auditLogs             AuditLog[]          @relation("AuditActor")
+
+  @@map("users")
+}
+
+model Session {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  tokenHash      String   @unique @map("token_hash")
+  userAgent      String?  @map("user_agent")
+  ipAddress      String?  @map("ip_address")
+  expiresAt      DateTime @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastSeenAt     DateTime @default(now()) @map("last_seen_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuthAttempt {
+  id                 String            @id @default(uuid()) @db.Uuid
+  kind               AuthAttemptKind
+  result             AuthAttemptResult
+  usernameNormalized String?           @map("username_normalized")
+  ipAddress          String?           @map("ip_address")
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  @@index([kind, usernameNormalized, createdAt])
+  @@index([kind, ipAddress, createdAt])
+  @@map("auth_attempts")
+}
+
+model Team {
+  id              String          @id @default(uuid()) @db.Uuid
+  providerSource  String          @map("provider_source")
+  providerId      String          @map("provider_id")
+  fifaCode        String?         @map("fifa_code")
+  iso2Code        String?         @map("iso2_code")
+  nameEn          String          @map("name_en")
+  namePt          String          @map("name_pt")
+  flagEmoji       String          @map("flag_emoji")
+  groupName       String?         @map("group_name")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  homeMatches     Match[]         @relation("HomeTeam")
+  awayMatches     Match[]         @relation("AwayTeam")
+  wonMatches      Match[]         @relation("WinnerTeam")
+  groupStandings  GroupStanding[]
+  knockoutSlots   KnockoutSlot[]
+  placementPredictions PlacementPrediction[]
+
+  @@unique([providerSource, providerId])
+  @@index([groupName])
+  @@map("teams")
+}
+
+model Match {
+  id                     String            @id @default(uuid()) @db.Uuid
+  providerSource         String            @map("provider_source")
+  providerId             String            @map("provider_id")
+  matchNumber            Int               @unique @map("match_number")
+  phase                  MatchPhase
+  groupName              String?           @map("group_name")
+  kickoffAt              DateTime          @map("kickoff_at")
+  venueName              String?           @map("venue_name")
+  venueCity              String?           @map("venue_city")
+  homeTeamId             String?           @map("home_team_id") @db.Uuid
+  awayTeamId             String?           @map("away_team_id") @db.Uuid
+  homePlaceholder        String?           @map("home_placeholder")
+  awayPlaceholder        String?           @map("away_placeholder")
+  status                 MatchStatus       @default(scheduled)
+  homeGoals              Int?              @map("home_goals")
+  awayGoals              Int?              @map("away_goals")
+  homeGoalsFullTime      Int?              @map("home_goals_full_time")
+  awayGoalsFullTime      Int?              @map("away_goals_full_time")
+  homeGoalsExtraTime     Int?              @map("home_goals_extra_time")
+  awayGoalsExtraTime     Int?              @map("away_goals_extra_time")
+  homePenalties          Int?              @map("home_penalties")
+  awayPenalties          Int?              @map("away_penalties")
+  winnerTeamId           String?           @map("winner_team_id") @db.Uuid
+  publicationStatus      PublicationStatus @default(draft) @map("publication_status")
+  publishedAt            DateTime?         @map("published_at")
+  publishedByUserId      String?           @map("published_by_user_id") @db.Uuid
+  manualOverrideByUserId String?           @map("manual_override_by_user_id") @db.Uuid
+  manualOverrideAt       DateTime?         @map("manual_override_at")
+  rawProviderPayload     Json?             @map("raw_provider_payload") @db.JsonB
+  lastSyncedAt           DateTime?         @map("last_synced_at")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  homeTeam               Team?             @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeam               Team?             @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  winnerTeam             Team?             @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  publishedByUser        User?             @relation("PublishedMatches", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  manualOverrideByUser   User?             @relation("ManualOverrideMatches", fields: [manualOverrideByUserId], references: [id], onDelete: SetNull)
+  knockoutSlots          KnockoutSlot[]
+  matchPredictions       MatchPrediction[]
+  matchPredictionScores  MatchPredictionScore[]
+
+  @@unique([providerSource, providerId])
+  @@index([kickoffAt])
+  @@index([phase, kickoffAt])
+  @@index([status])
+  @@index([publicationStatus, kickoffAt])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@map("matches")
+}
+
+model GroupStanding {
+  id                  String              @id @default(uuid()) @db.Uuid
+  providerSource      String              @map("provider_source")
+  providerId          String?             @map("provider_id")
+  groupName           String              @map("group_name")
+  teamId              String              @map("team_id") @db.Uuid
+  rank                Int
+  played              Int                 @default(0)
+  wins                Int                 @default(0)
+  draws               Int                 @default(0)
+  losses              Int                 @default(0)
+  goalsFor            Int                 @default(0) @map("goals_for")
+  goalsAgainst        Int                 @default(0) @map("goals_against")
+  goalDifference      Int                 @default(0) @map("goal_difference")
+  points              Int                 @default(0)
+  fairPlayPoints      Int?                @map("fair_play_points")
+  fifaRankingCurrent  Int?                @map("fifa_ranking_current")
+  qualificationStatus QualificationStatus @default(unknown) @map("qualification_status")
+  rawProviderPayload  Json?               @map("raw_provider_payload") @db.JsonB
+  lastSyncedAt        DateTime?           @map("last_synced_at")
+  team                Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([groupName, teamId])
+  @@unique([groupName, rank])
+  @@index([teamId])
+  @@map("group_standings")
+}
+
+model KnockoutSlot {
+  id                 String           @id @default(uuid()) @db.Uuid
+  matchId            String           @map("match_id") @db.Uuid
+  side               KnockoutSlotSide
+  slotLabel          String           @map("slot_label")
+  resolvedTeamId     String?          @map("resolved_team_id") @db.Uuid
+  resolvedAt         DateTime?        @map("resolved_at")
+  source             String
+  rawProviderPayload Json?            @map("raw_provider_payload") @db.JsonB
+  match              Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  resolvedTeam       Team?            @relation(fields: [resolvedTeamId], references: [id], onDelete: SetNull)
+
+  @@unique([matchId, side])
+  @@index([resolvedTeamId])
+  @@map("knockout_slots")
+}
+
+model ScoringRule {
+  id                 String     @id @default(uuid()) @db.Uuid
+  phase              MatchPhase
+  oneTeamGoalsPoints Decimal    @map("one_team_goals_points") @db.Decimal(5, 1)
+  outcomePoints      Decimal    @map("outcome_points") @db.Decimal(5, 1)
+  scorelinePoints    Decimal    @map("scoreline_points") @db.Decimal(5, 1)
+  exactCapPoints     Decimal    @map("exact_cap_points") @db.Decimal(5, 1)
+  activeFrom         DateTime   @default(now()) @map("active_from")
+  activeTo           DateTime?  @map("active_to")
+  createdByUserId    String?    @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime   @default(now()) @map("created_at")
+  createdByUser      User?      @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([phase, activeFrom, activeTo])
+  @@map("scoring_rules")
+}
+
+model AppSetting {
+  key             String    @id
+  value           Json      @db.JsonB
+  updatedByUserId String?   @map("updated_by_user_id") @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  updatedByUser   User?     @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("app_settings")
+}
+
+model PredictionSubmission {
+  id                   String                      @id @default(uuid()) @db.Uuid
+  userId               String                      @map("user_id") @db.Uuid
+  phaseGroup           PredictionPhaseGroup        @map("phase_group")
+  status               PredictionSubmissionStatus  @default(draft)
+  confirmedAt          DateTime?                   @map("confirmed_at")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchPredictions     MatchPrediction[]
+  placementPredictions PlacementPrediction[]
+
+  @@unique([userId, phaseGroup])
+  @@index([status])
+  @@map("prediction_submissions")
+}
+
+model MatchPrediction {
+  id            String                 @id @default(uuid()) @db.Uuid
+  submissionId  String                 @map("submission_id") @db.Uuid
+  userId        String                 @map("user_id") @db.Uuid
+  matchId       String                 @map("match_id") @db.Uuid
+  homeGoals     Int                    @map("home_goals")
+  awayGoals     Int                    @map("away_goals")
+  confirmedAt   DateTime?              @map("confirmed_at")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+  submission    PredictionSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match         Match                  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  score         MatchPredictionScore?
+
+  @@unique([userId, matchId])
+  @@index([submissionId])
+  @@index([matchId])
+  @@map("match_predictions")
+}
+
+model PlacementPrediction {
+  id            String                  @id @default(uuid()) @db.Uuid
+  submissionId  String                  @map("submission_id") @db.Uuid
+  userId        String                  @map("user_id") @db.Uuid
+  placement     PlacementPredictionKind
+  teamId        String                  @map("team_id") @db.Uuid
+  confirmedAt   DateTime?               @map("confirmed_at")
+  submission    PredictionSubmission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team          Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placement])
+  @@index([submissionId])
+  @@index([teamId])
+  @@map("placement_predictions")
+}
+
+model MatchPredictionScore {
+  id                        String          @id @default(uuid()) @db.Uuid
+  matchPredictionId         String          @unique @map("match_prediction_id") @db.Uuid
+  matchId                   String          @map("match_id") @db.Uuid
+  userId                    String          @map("user_id") @db.Uuid
+  phase                     MatchPhase
+  oneTeamGoalsPoints        Decimal         @map("one_team_goals_points") @db.Decimal(5, 1)
+  outcomePoints             Decimal         @map("outcome_points") @db.Decimal(5, 1)
+  scorelinePoints           Decimal         @map("scoreline_points") @db.Decimal(5, 1)
+  totalPoints               Decimal         @map("total_points") @db.Decimal(5, 1)
+  isExact                   Boolean         @map("is_exact")
+  isOutcomeCorrect          Boolean         @map("is_outcome_correct")
+  isOneTeamGoalsCorrect     Boolean         @map("is_one_team_goals_correct")
+  computedAt                DateTime        @default(now()) @map("computed_at")
+  matchPrediction           MatchPrediction @relation(fields: [matchPredictionId], references: [id], onDelete: Cascade)
+  match                     Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user                      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@map("match_prediction_scores")
+}
+
+model LeaderboardSnapshot {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @map("user_id") @db.Uuid
+  totalPoints           Decimal  @map("total_points") @db.Decimal(7, 1)
+  exactCount            Int      @default(0) @map("exact_count")
+  outcomeCount          Int      @default(0) @map("outcome_count")
+  oneTeamGoalsCount     Int      @default(0) @map("one_team_goals_count")
+  rank                  Int
+  computedAt            DateTime @default(now()) @map("computed_at")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([rank])
+  @@map("leaderboard_snapshots")
+}
+
+model ProviderSyncLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  providerSource String    @map("provider_source")
+  syncType       String    @map("sync_type")
+  status         String
+  startedAt      DateTime  @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  errorMessage   String?   @map("error_message")
+  metadata       Json?     @db.JsonB
+
+  @@index([providerSource, syncType, startedAt])
+  @@index([status, startedAt])
+  @@map("provider_sync_logs")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorUserId  String?  @map("actor_user_id") @db.Uuid
+  action       String
+  targetEntity String   @map("target_entity")
+  targetId     String?  @map("target_id")
+  beforePayload Json?   @map("before_payload") @db.JsonB
+  afterPayload  Json?   @map("after_payload") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
+  actor         User?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetEntity, targetId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

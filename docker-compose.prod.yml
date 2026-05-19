@@ -1,0 +1,90 @@
+name: bolao-copa-2026
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+  AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+  APP_URL: ${APP_URL:-https://bolao-facabundos-2026.parmezani.com}
+  PRIMARY_DATA_PROVIDER: ${PRIMARY_DATA_PROVIDER:-openfootball-static}
+  SPORTMONKS_API_TOKEN: ${SPORTMONKS_API_TOKEN:-}
+  FOOTBALL_DATA_API_TOKEN: ${FOOTBALL_DATA_API_TOKEN:-}
+  PREDICTION_REVEAL_POLICY: ${PREDICTION_REVEAL_POLICY:-after_final_score}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  WORKER_INTERVAL_SECONDS: ${WORKER_INTERVAL_SECONDS:-300}
+
+services:
+  web:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "3000"
+    networks:
+      default:
+      proxy:
+        aliases:
+          - bolao-copa-2026-web
+
+  worker:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-c",
+        "while true; do npm run worker -- all; sleep \"$${WORKER_INTERVAL_SECONDS:-300}\"; done",
+      ]
+    environment:
+      <<: *app-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+
+  migrate:
+    build:
+      context: .
+      target: runner
+    restart: "no"
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      <<: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bolao_copa_2026}
+      POSTGRES_USER: ${POSTGRES_USER:-bolao}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+networks:
+  proxy:
+    external: true
+    name: public_proxy
+
+volumes:
+  postgres_data:

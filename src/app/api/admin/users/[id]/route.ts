@@ -1,0 +1,122 @@
+import { NextRequest } from "next/server";
+import type { UserRole, UserStatus } from "@prisma/client";
+
+import { writeAuditLog } from "@/lib/admin/audit";
+import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import { asString, readRequestData } from "@/lib/admin/forms";
+import { normalizeUsername } from "@/lib/auth/username";
+import { prisma } from "@/lib/prisma";
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+function parseRole(value: unknown): UserRole {
+  return value === "admin" ? "admin" : "player";
+}
+
+function parseStatus(value: unknown): UserStatus {
+  if (value === "disabled" || value === "deleted") {
+    return value;
+  }
+
+  return "active";
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  return updateUser(request, context);
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  return updateUser(request, context);
+}
+
+async function updateUser(request: NextRequest, context: RouteContext) {
+  const { response, user: actor } = await requireAdminApi(request, true);
+
+  if (response || !actor) {
+    return response;
+  }
+
+  const { id } = await context.params;
+  const data = await readRequestData(request);
+  const before = await prisma.user.findUnique({ where: { id } });
+
+  if (!before) {
+    return Response.json({ error: "Usuário não encontrado." }, { status: 404 });
+  }
+
+  const username = asString(data.username);
+  const displayName = asString(data.displayName);
+  const status = parseStatus(data.status);
+  const after = await prisma.user.update({
+    where: { id },
+    data: {
+      username: username || before.username,
+      usernameNormalized: username ? normalizeUsername(username) : before.usernameNormalized,
+      displayName: displayName || before.displayName,
+      role: parseRole(data.role),
+      status,
+      deletedAt: status === "deleted" ? new Date() : null,
+    },
+  });
+
+  if (status !== "active") {
+    await prisma.session.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  await writeAuditLog({
+    actorUserId: actor.id,
+    action: "user.update",
+    targetEntity: "user",
+    targetId: id,
+    before,
+    after,
+  });
+
+  if (shouldRedirectBack(request)) {
+    return redirectBack(request, "/admin/users");
+  }
+
+  return Response.json({ ok: true, user: after });
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { response, user: actor } = await requireAdminApi(request, true);
+
+  if (response || !actor) {
+    return response;
+  }
+
+  const { id } = await context.params;
+  const before = await prisma.user.findUnique({ where: { id } });
+
+  if (!before) {
+    return Response.json({ error: "Usuário não encontrado." }, { status: 404 });
+  }
+
+  const after = await prisma.user.update({
+    where: { id },
+    data: {
+      status: "deleted",
+      deletedAt: new Date(),
+    },
+  });
+  await prisma.session.updateMany({
+    where: { userId: id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  await writeAuditLog({
+    actorUserId: actor.id,
+    action: "user.soft_delete",
+    targetEntity: "user",
+    targetId: id,
+    before,
+    after,
+  });
+
+  return Response.json({ ok: true, user: after });
+}

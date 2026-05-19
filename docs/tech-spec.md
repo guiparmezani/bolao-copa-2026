@@ -60,16 +60,12 @@ What must change for World Cup 2026:
 
 - The workbook schedule is for World Cup 2022: 8 groups, 48 group-stage matches, Round of 16 as the first knockout round.
 - World Cup 2026 has 12 groups, 72 group-stage matches, and a Round of 32 before the Round of 16.
-- The spreadsheet scoring table has no explicit Round of 32 points. The app must add a `round_of_32` scoring row. Default recommendation: copy the Oitavas/Round-of-16 weights until the group agrees on a different value.
+- The spreadsheet scoring table has no explicit Round of 32 points. The app must add a `round_of_32` scoring row using the same weights as Oitavas/Round of 16.
 - The spreadsheet's maximum-points formulas are 2022-specific:
   - group max uses `48 * exact_group_points`;
   - final-phase max uses `8 Oitavas + 4 Quartas + 2 Semi + 2 Finais`.
   These formulas must be recalculated dynamically from the database match list.
 - The spreadsheet includes placement bonuses: champion `75`, runner-up `50`, third place `25`. These are not match-score predictions; they are separate winner/placement picks and should be implemented to preserve the 2022 bolão rules.
-
-Open rules to confirm before launch:
-
-- Whether Round of 32 uses the same score weights as Oitavas.
 
 2022 bolão compatibility decision:
 
@@ -235,13 +231,15 @@ volumes:
 Caddy target pattern:
 
 ```caddyfile
-bolao.example.com {
+bolao-facabundos-2026.parmezani.com {
     encode zstd gzip
     reverse_proxy bolao-copa-2026-web:3000
 }
 ```
 
-Final domain is TBD.
+Final domain: `bolao-facabundos-2026.parmezani.com`.
+
+Deployment is not part of the initial implementation sprint. Build and validate locally first, then deploy to `parmavps` later following the VPS deployment rulebook.
 
 ## Product Scope
 
@@ -312,13 +310,13 @@ Final domain is TBD.
   - third place;
   - runner-up;
   - champion.
-- These picks should be submitted and locked with the knockout submission unless admins decide to require them during the group submission.
+- These picks are submitted separately from match score predictions and lock on 2026-07-16 by default.
 
 `/predictions`
 
-- Logged-in comparison view.
+- Public comparison view.
 - Shows all users' confirmed predictions and real results.
-- To reduce copying risk, only reveal a phase's predictions after that phase's submission window is closed, or after the current user has submitted and the admin has enabled early reveal.
+- To reduce copying risk, reveal predictions match-by-match as soon as each match is finished. Before a match is finished, predictions for that match remain hidden.
 
 `/admin`
 
@@ -453,11 +451,12 @@ Bolão configuration:
   - knockout open/close time;
   - winner/placement pick deadline.
 - Reveal policy:
-  - reveal after phase deadline;
-  - reveal after user submits;
+  - default: reveal each match's predictions after that match is finished;
+  - optional: reveal after phase deadline;
+  - optional: reveal after user submits;
   - admin-only until manually released.
 - Signup policy:
-  - public signup;
+  - public signup by default;
   - invite-code-only signup;
   - admin-created users only.
 - Data provider:
@@ -505,13 +504,16 @@ Phases:
 Submission groups:
 
 - Group submission covers `group`.
-- Knockout submission covers all knockout phases: `round_of_32` through `final`, plus champion, runner-up, and third-place picks by default.
+- Knockout submission covers all knockout phases: `round_of_32` through `final`.
+- Winner/placement submission covers champion, runner-up, and third-place picks.
 
 Recommended default deadlines:
 
-- Group predictions close at the kickoff of the first tournament match, not when the knockout bracket is defined. This prevents late users from predicting group matches after seeing results.
+- Group predictions close at 2026-06-11 23:59 `America/Sao_Paulo`.
 - Knockout predictions open only when the provider confirms all Round-of-32 participants and fixtures are non-placeholder.
-- Knockout predictions close at the kickoff of the first Round-of-32 match.
+- Knockout predictions close at 2026-06-27 23:59 `America/Sao_Paulo`.
+- Winner/placement picks close at 2026-07-16 23:59 `America/Sao_Paulo`.
+- Public prediction reveal happens per match as soon as that match is finished. Before a match is finished, submitted predictions for that match stay hidden to prevent copying.
 
 If the group decides to allow late group submissions, this should be an explicit admin setting and should mark late predictions separately.
 
@@ -729,6 +731,7 @@ Settings:
 - `group_submission_deadline`
 - `knockout_submission_open_at`
 - `knockout_submission_deadline`
+- `placement_submission_deadline`
 - `prediction_reveal_policy`
 - `placement_predictions_enabled` default `true` to preserve the 2022 bolão rules
 - `data_provider_primary`
@@ -839,11 +842,12 @@ This can be a table maintained by the worker or a materialized view. Start with 
 
 Recommended provider strategy:
 
-1. Primary production provider: Sportmonks, if budget allows.
+1. Primary preference: official public data, especially FIFA, if a usable documented source is available and its terms allow this use.
 2. Secondary/backup: football-data.org after verifying 2026 World Cup coverage and plan access.
-3. Seed/offline source: OpenFootball CC0.
-4. Optional prototype source: WC2026 API.
-5. Manual verification source: FIFA official schedule and match centre.
+3. Paid fallback: Sportmonks, if official/public options are insufficient and budget allows.
+4. Seed/offline source: OpenFootball CC0.
+5. Optional prototype source: WC2026 API.
+6. Manual verification source: FIFA official schedule and match centre.
 
 Do not scrape FIFA pages for production updates. Use FIFA as a manual source of truth only unless FIFA exposes a documented API with acceptable terms.
 
@@ -1085,7 +1089,7 @@ E2E tests:
    - Next.js, TypeScript, Tailwind, Prisma, PostgreSQL Compose for local dev.
    - Base layout, mobile navigation, design tokens.
 
-2. Auth and users
+2. Auth and users - implemented in milestone 2
    - Signup/login/logout.
    - Username uniqueness and password hashing.
    - Admin role seed.
@@ -1095,35 +1099,43 @@ E2E tests:
    - Seed from OpenFootball or provider fixture import.
    - Schedule page.
 
-4. Scoring engine
+4. Scoring engine - implemented in milestone 4
    - Configurable rules.
    - Unit-tested score calculation.
    - Leaderboard snapshot generation.
 
-5. Group predictions
+5. Group predictions - implemented in milestone 5
    - Draft save.
    - Confirmation lightbox.
    - Immutable submissions.
+   - Authenticated `/predictions/group` page grouped by date with numeric score inputs.
+   - `/api/predictions/group/draft`, `/api/predictions/group/confirm`, and `/api/me/predictions`.
+   - Dashboard status and read-only confirmed group predictions.
+   - Server-side group deadline enforcement from `group_submission_deadline`, defaulting to 2026-06-11 23:59 `America/Sao_Paulo`.
 
-6. Data sync worker
+6. Data sync worker - implemented in milestone 6
    - Provider abstraction.
    - Static fixture sync.
    - Live/final score sync.
    - Recalculate scores after final results.
+   - `provider_sync_logs` persistence.
+   - Worker commands for static data, live match stubs, finished-match
+     finalization, official standings stubs, and knockout-open readiness.
 
-7. Knockout predictions
+7. Knockout predictions - implemented in milestone 7
    - Placeholder detection.
    - Open/close logic.
    - Knockout score and winner/placement form confirmation.
 
-8. Prediction comparison and rules pages
-   - Authenticated comparison page.
+8. Prediction comparison and rules pages - implemented in milestone 8
+   - Public comparison page with match-by-match reveal after official final score.
    - Public rules page generated from active scoring config.
 
-9. Admin and deployment
+9. Admin and deployment - implemented in milestone 9
    - Admin dashboard, match publishing, user management, submissions, scoring, settings, audit, exports.
-   - Production Dockerfile and Compose.
-   - Caddy route following VPS rulebook.
+   - Production Dockerfile and Compose scaffolding implemented for local validation.
+   - Caddy route documented for later VPS handoff following the VPS rulebook.
+   - Actual VPS deployment, Caddy reload, and service restart are not part of this sprint.
 
 ## Production Environment Variables
 
@@ -1139,20 +1151,15 @@ Required:
 
 Optional:
 
-- `ADMIN_INITIAL_USERNAME`
-- `ADMIN_INITIAL_PASSWORD`
+- `ADMIN_USERNAME`
+- `ADMIN_DISPLAY_NAME`
+- `ADMIN_PASSWORD`
 - `PREDICTION_REVEAL_POLICY`
 - `LOG_LEVEL`
 
 ## Open Decisions
 
-- Final public domain for the app.
-- Primary paid/free match data provider.
-- Round of 32 score weights.
-- Exact group prediction deadline.
-- Whether winner/placement picks lock with group predictions or with knockout predictions.
-- Whether predictions become visible after user confirmation or only after phase deadline.
-- Whether an invite code is required for signup to keep the bolão private.
+- Whether to require invite codes later; signup starts open by default.
 
 ## Acceptance Criteria
 
@@ -1163,7 +1170,7 @@ Optional:
 - Users can submit champion, runner-up, and third-place picks using the 2022 bolão bonus rules.
 - Admins can publish imported/manual matches, manage users, override results, inspect submissions, recompute scores, and review audit logs.
 - Homepage shows a live leaderboard.
-- Logged-in users can compare predictions and real results.
+- Everyone can compare revealed predictions and real results after each match is finished.
 - Schedule page updates from a provider-backed sync process.
 - Rules page reflects the active scoring configuration.
 - Scoring matches the agreed spreadsheet-derived model, including phase-specific knockout weights.
