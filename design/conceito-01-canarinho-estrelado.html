@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conceito 01 | Canarinho Estrelado</title>
+  <style>
+    :root {
+      --verde: #00703c;
+      --verde-escuro: #052f22;
+      --verde-lima: #a5d63f;
+      --amarelo: #ffd63d;
+      --azul: #1847a8;
+      --azul-claro: #dfe9ff;
+      --texto: #11251c;
+      --muted: #5a6c64;
+      --fundo: #fff9df;
+      --papel: #fffdf5;
+      --linha: rgba(17, 37, 28, .14);
+      --sombra: 0 22px 60px rgba(0, 65, 44, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--texto);
+      background: var(--fundo);
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 249, 223, .92);
+      border-bottom: 1px solid var(--linha);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 950;
+      color: var(--verde-escuro);
+    }
+
+    .crest {
+      width: 42px;
+      aspect-ratio: 1;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--amarelo);
+      color: var(--verde-escuro);
+      border: 2px solid var(--verde-escuro);
+      box-shadow: 4px 4px 0 var(--azul);
+      font-weight: 950;
+    }
+
+    .brand span {
+      overflow-wrap: anywhere;
+      line-height: 1.05;
+    }
+
+    .links {
+      display: none;
+      align-items: center;
+      gap: 18px;
+      color: var(--verde-escuro);
+      font-size: .93rem;
+      font-weight: 800;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .btn {
+      min-height: 42px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 900;
+      color: var(--verde-escuro);
+      background: var(--amarelo);
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,.12);
+      white-space: nowrap;
+    }
+
+    .btn.secondary {
+      background: var(--papel);
+      color: var(--verde-escuro);
+      border: 1px solid var(--linha);
+      box-shadow: none;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255,214,61,.94), rgba(255,249,223,.9) 34%, rgba(0,112,60,.88) 100%),
+        url("https://commons.wikimedia.org/wiki/Special:FilePath/Bra-Cos%20%281%29.jpg?width=1400");
+      background-size: cover;
+      background-position: center;
+      border-bottom: 1px solid rgba(5,47,34,.16);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255,249,223,.96), rgba(255,249,223,.72) 48%, rgba(0,80,50,.24)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.14) 0 1px, transparent 1px 72px);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 34px 0 28px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.76);
+      color: var(--verde-escuro);
+      font-weight: 900;
+      border: 1px solid rgba(5,47,34,.14);
+      box-shadow: 0 8px 24px rgba(5,47,34,.08);
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 16px;
+      align-content: center;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: 3.15rem;
+      line-height: .95;
+      color: var(--verde-escuro);
+      text-wrap: balance;
+    }
+
+    .hero-copy p {
+      max-width: 600px;
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      color: #26483a;
+      font-weight: 650;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      max-width: 620px;
+    }
+
+    .stat {
+      min-height: 84px;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(5,47,34,.14);
+      box-shadow: 0 12px 30px rgba(5,47,34,.08);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.55rem;
+      line-height: 1;
+      color: var(--verde-escuro);
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .mural {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .player {
+      min-height: 176px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      background: #0b3d2c;
+      box-shadow: var(--sombra);
+      isolation: isolate;
+    }
+
+    .player::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: var(--img);
+      background-size: cover;
+      background-position: center top;
+      filter: saturate(1.08) contrast(1.04);
+      transform: scale(1.02);
+      z-index: -2;
+    }
+
+    .player::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(5,47,34,.04), rgba(5,47,34,.88));
+      z-index: -1;
+    }
+
+    .player.neymar { --img: url("https://commons.wikimedia.org/wiki/Special:FilePath/Bra-Cos%20%281%29.jpg?width=760"); }
+    .player.vini { --img: url("https://commons.wikimedia.org/wiki/Special:FilePath/Vinicius%20Junior%202018%201%20%28cropped%29.jpg?width=620"); }
+    .player.raphinha { --img: url("https://commons.wikimedia.org/wiki/Special:FilePath/Raphinha.jpg?width=520"); }
+    .player.ronaldinho { --img: url("https://commons.wikimedia.org/wiki/Special:FilePath/Ronaldinho_Ga%C3%BAcho.jpg?width=720"); }
+
+    .player-info {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      gap: 3px;
+      color: white;
+      text-shadow: 0 2px 14px rgba(0,0,0,.45);
+    }
+
+    .player-info strong {
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .player-info span {
+      color: #f7eaa2;
+      font-weight: 850;
+      font-size: .78rem;
+      line-height: 1.2;
+    }
+
+    .band {
+      padding: 28px 0;
+    }
+
+    .band.alt {
+      background: #eff7df;
+      border-block: 1px solid rgba(5,47,34,.1);
+    }
+
+    .container {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--verde-escuro);
+      font-size: 1.55rem;
+      line-height: 1.05;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--azul);
+      color: white;
+      font-size: .8rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .ranking {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 74px;
+      padding: 12px;
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: var(--papel);
+      box-shadow: 0 10px 28px rgba(5,47,34,.06);
+    }
+
+    .pos {
+      width: 36px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--verde-escuro);
+      color: white;
+      font-weight: 950;
+    }
+
+    .rank-name {
+      min-width: 0;
+    }
+
+    .rank-name strong {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--verde-escuro);
+    }
+
+    .rank-name span {
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+    }
+
+    .points {
+      color: var(--azul);
+      font-size: 1.25rem;
+      font-weight: 950;
+    }
+
+    .matches {
+      display: grid;
+      gap: 10px;
+    }
+
+    .match {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .match-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 850;
+    }
+
+    .scoreline {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+
+    .team {
+      min-width: 0;
+      font-weight: 900;
+      color: var(--verde-escuro);
+      overflow-wrap: anywhere;
+    }
+
+    .team:last-child { text-align: right; }
+
+    .score {
+      min-width: 74px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--verde-escuro);
+      color: var(--amarelo);
+      font-size: 1.25rem;
+      font-weight: 950;
+    }
+
+    .dash-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: var(--papel);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel h3 {
+      margin: 0;
+      color: var(--verde-escuro);
+      font-size: 1.05rem;
+    }
+
+    .progress {
+      height: 12px;
+      border-radius: 999px;
+      background: #d9e8d0;
+      overflow: hidden;
+    }
+
+    .bar {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--verde), var(--amarelo));
+    }
+
+    .admin-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .admin-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-top: 1px solid var(--linha);
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .admin-list strong { color: var(--verde-escuro); }
+
+    .footer {
+      padding: 22px 0 36px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 760px) {
+      .links { display: flex; }
+      .hero-inner {
+        min-height: calc(100vh - 68px);
+        grid-template-columns: 1.02fr .98fr;
+        align-items: center;
+        padding: 54px 0;
+      }
+      h1 { font-size: 4.85rem; }
+      .mural { grid-template-columns: repeat(4, minmax(0, 1fr)); align-self: stretch; }
+      .player { min-height: 460px; }
+      .ranking { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .rank-row { grid-template-columns: 38px minmax(0, 1fr); align-content: start; }
+      .points { grid-column: 2; }
+      .matches { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .dash-grid { grid-template-columns: 1.15fr .85fr; }
+      .band { padding: 46px 0; }
+    }
+
+    @media (max-width: 430px) {
+      .actions .secondary { display: none; }
+      h1 { font-size: 2.55rem; }
+      .hero-stats { grid-template-columns: 1fr; }
+      .mural { grid-template-columns: 1fr; }
+      .player { min-height: 220px; }
+      .section-head { align-items: start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav" aria-label="Navegação principal">
+      <a class="brand" href="#">
+        <span class="crest">BF</span>
+        <span>Bolão dos Facabundos 2026</span>
+      </a>
+      <div class="links">
+        <a href="#ranking">Ranking</a>
+        <a href="#jogos">Jogos</a>
+        <a href="#palpites">Palpites</a>
+        <a href="#regras">Regras</a>
+      </div>
+      <div class="actions">
+        <a class="btn secondary" href="#admin">Admin</a>
+        <a class="btn" href="#entrar">Entrar</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="entrar">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow">🇧🇷 Copa 2026 • bolão fechado entre amigos</span>
+          <h1>Palpite bonito também ganha ponto.</h1>
+          <p>Crie sua conta, mande seus placares da fase de grupos, espere o mata-mata abrir e acompanhe a tabela com a mesma tensão de final de Copa.</p>
+          <div class="hero-actions">
+            <a class="btn" href="#">Criar minha conta</a>
+            <a class="btn secondary" href="#">Ver ranking</a>
+          </div>
+          <div class="hero-stats" aria-label="Resumo do bolão">
+            <div class="stat"><strong>104</strong><span>jogos acompanhados</span></div>
+            <div class="stat"><strong>32</strong><span>palpites no mata-mata</span></div>
+            <div class="stat"><strong>530</strong><span>pontos de referência</span></div>
+          </div>
+        </div>
+        <div class="mural" aria-label="Mural de jogadores brasileiros">
+          <article class="player neymar"><div class="player-info"><strong>Neymar Jr.</strong><span>camisa 10 no mural</span></div></article>
+          <article class="player vini"><div class="player-info"><strong>Vini Jr.</strong><span>velocidade na ponta</span></div></article>
+          <article class="player raphinha"><div class="player-info"><strong>Raphinha</strong><span>bola parada e raça</span></div></article>
+          <article class="player ronaldinho"><div class="player-info"><strong>Ronaldinho Gaúcho</strong><span>referência da resenha</span></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="ranking">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Ranking atualizado</h2>
+            <p>Classificação geral após os jogos finalizados e recalculados.</p>
+          </div>
+          <span class="pill">Atualizado às 18:42</span>
+        </div>
+        <div class="ranking">
+          <article class="rank-row"><div class="pos">1</div><div class="rank-name"><strong>Gui Parmezani</strong><span>12 exatos • 31 vencedores</span></div><div class="points">142 pts</div></article>
+          <article class="rank-row"><div class="pos">2</div><div class="rank-name"><strong>Vlade</strong><span>10 exatos • 30 vencedores</span></div><div class="points">136 pts</div></article>
+          <article class="rank-row"><div class="pos">3</div><div class="rank-name"><strong>Mariozinho</strong><span>9 exatos • 29 vencedores</span></div><div class="points">128 pts</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt" id="jogos">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Jogos em destaque</h2>
+            <p>Agenda por data, placares oficiais e status da rodada.</p>
+          </div>
+          <span class="pill">Ao vivo</span>
+        </div>
+        <div class="matches">
+          <article class="match">
+            <div class="match-top"><span>Grupo A • 16:00</span><span>Publicado</span></div>
+            <div class="scoreline"><span class="team">🇧🇷 Brasil</span><span class="score">2 x 1</span><span class="team">🇲🇽 México</span></div>
+          </article>
+          <article class="match">
+            <div class="match-top"><span>Grupo C • 19:00</span><span>Hoje</span></div>
+            <div class="scoreline"><span class="team">🇦🇷 Argentina</span><span class="score">- x -</span><span class="team">🇯🇵 Japão</span></div>
+          </article>
+          <article class="match">
+            <div class="match-top"><span>Oitavas • 21:00</span><span>Bloqueado</span></div>
+            <div class="scoreline"><span class="team">1º Grupo A</span><span class="score">- x -</span><span class="team">3º melhor</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="palpites">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Meus palpites</h2>
+            <p>Fluxo de envio com trava explícita, igual ao combinado do bolão.</p>
+          </div>
+          <span class="pill">Fase de grupos aberta</span>
+        </div>
+        <div class="dash-grid">
+          <article class="panel">
+            <h3>Progresso de envio</h3>
+            <p>Você já preencheu 58 de 72 jogos da fase de grupos. Revise antes de confirmar, porque depois fica travado.</p>
+            <div class="progress" aria-label="58 de 72 jogos preenchidos"><span class="bar" style="--value: 80%"></span></div>
+            <a class="btn" href="#">Continuar palpites</a>
+          </article>
+          <article class="panel" id="admin">
+            <h3>Atalhos do administrador</h3>
+            <ul class="admin-list">
+              <li><strong>Jogos publicados</strong><span>72/104</span></li>
+              <li><strong>Usuários ativos</strong><span>18</span></li>
+              <li><strong>Ranking</strong><span>recalcular</span></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt" id="regras">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Regras rápidas</h2>
+            <p>Placar exato soma placar e vencedor, pontos mudam por fase e os bônus de campeão, vice e terceiro lugar seguem o bolão de 2022.</p>
+          </div>
+          <a class="btn secondary" href="#">Ver regulamento</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span>Conceito visual. Imagens de jogadores via Wikimedia Commons para avaliação de direção criativa.</span>
+    </div>
+  </footer>
+</body>
+</html>

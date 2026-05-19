@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regras | Bolão dos Facabundos 2026</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fundo: #061412;
+      --texto: #eef9ee;
+      --muted: #a4b9ae;
+      --painel: rgba(12, 34, 30, .88);
+      --linha: rgba(231, 247, 236, .15);
+      --verde: #10a66a;
+      --amarelo: #f3c53b;
+      --azul: #67a6ff;
+      --sombra: 0 24px 70px rgba(0, 0, 0, .32);
+      --overlay: linear-gradient(180deg, rgba(6,20,18,.18), rgba(6,20,18,.82) 60%, #061412 100%);
+      --button-bg: rgba(255,255,255,.08);
+      --button-border: rgba(255,255,255,.18);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --fundo: #f3efde;
+      --texto: #102720;
+      --muted: #62746c;
+      --painel: rgba(255, 253, 246, .90);
+      --linha: rgba(16, 39, 32, .15);
+      --verde: #078957;
+      --amarelo: #e8b833;
+      --azul: #1d63c9;
+      --sombra: 0 24px 70px rgba(52, 62, 39, .18);
+      --overlay: linear-gradient(180deg, rgba(243,239,222,.18), rgba(243,239,222,.82) 64%, #f3efde 100%);
+      --button-bg: rgba(255,255,255,.62);
+      --button-border: rgba(16,39,32,.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--texto);
+      background:
+        var(--overlay),
+        url("https://commons.wikimedia.org/wiki/Special:FilePath/The_Peninsula_Stadium_at_night_-_Salford_City_-_Aug_24.jpg?width=1800");
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .nav {
+      width: min(1120px, calc(100% - 28px));
+      min-height: 72px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: #eef9ee;
+      font-weight: 950;
+      text-shadow: 0 2px 18px rgba(0,0,0,.45);
+    }
+
+    .mark {
+      width: 42px;
+      aspect-ratio: 1;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--amarelo), var(--verde));
+      color: #082016;
+      font-weight: 950;
+    }
+
+    .menu {
+      display: none;
+      gap: 18px;
+      color: rgba(238,249,238,.78);
+      font-size: .93rem;
+      font-weight: 850;
+      text-shadow: 0 2px 18px rgba(0,0,0,.45);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .button {
+      min-height: 42px;
+      border: 1px solid var(--button-border);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--texto);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .button.primary {
+      border-color: transparent;
+      background: var(--amarelo);
+      color: #0c2118;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 34px 0 46px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: rgba(6,20,18,.58);
+      box-shadow: var(--sombra);
+      backdrop-filter: blur(2px);
+    }
+
+    :root[data-theme="light"] .hero {
+      background: rgba(255,253,246,.76);
+    }
+
+    .chip {
+      width: fit-content;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(17,166,106,.16);
+      color: var(--texto);
+      border: 1px solid rgba(17,166,106,.32);
+      font-size: .82rem;
+      font-weight: 900;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: 3rem;
+      line-height: .96;
+      text-wrap: balance;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--texto);
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: var(--painel);
+      box-shadow: var(--sombra);
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin: 0;
+      padding: 14px;
+      border-bottom: 1px solid var(--linha);
+      font-size: 1.15rem;
+    }
+
+    .rules {
+      display: grid;
+      gap: 0;
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      border-top: 1px solid var(--linha);
+    }
+
+    .rule:first-child { border-top: 0; }
+
+    .rule b {
+      width: 30px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(127,140,132,.14);
+      color: var(--amarelo);
+      font-weight: 950;
+    }
+
+    .rule strong {
+      display: block;
+      color: var(--texto);
+      margin-bottom: 5px;
+    }
+
+    .rule span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--linha);
+      text-align: left;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    th {
+      color: var(--texto);
+      background: rgba(127,140,132,.08);
+    }
+
+    td:last-child, th:last-child { text-align: right; }
+
+    footer {
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 820px) {
+      .menu { display: flex; }
+      h1 { font-size: 4.6rem; }
+      .grid { grid-template-columns: 1fr 1fr; align-items: start; }
+      .wide { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 430px) {
+      .theme-toggle { width: 42px; padding: 0; font-size: 0; }
+      .theme-toggle::before { content: "◐"; font-size: 1rem; }
+      h1 { font-size: 2.5rem; }
+      .button.primary { padding-inline: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav" aria-label="Navegação principal">
+      <a class="brand" href="conceito-02-noite-de-copa.html"><span class="mark">BF</span><span>Bolão dos Facabundos 2026</span></a>
+      <div class="menu">
+        <a href="conceito-02-noite-de-copa.html#ranking">Ranking</a>
+        <a href="conceito-02-noite-de-copa.html#jogos">Jogos</a>
+        <a href="conceito-02-regras.html">Regras</a>
+      </div>
+      <div class="actions">
+        <button class="button theme-toggle" type="button" data-theme-toggle>Alternar tema</button>
+        <a class="button primary" href="conceito-02-noite-de-copa.html#entrar">Entrar</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <span class="chip">Regulamento do bolão</span>
+      <h1>Regras simples, visíveis e sem pegadinha.</h1>
+      <p>Esta página concentra o regulamento do jogo. A lógica mantém o comportamento do bolão de 2022: placares por jogo, duas fases de envio e bônus separados para campeão, vice e terceiro lugar.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Envio de palpites</h2>
+        <div class="rules">
+          <div class="rule"><b>1</b><span><strong>Fase de grupos</strong>Os placares da fase de grupos são enviados primeiro e ficam travados após a confirmação.</span></div>
+          <div class="rule"><b>2</b><span><strong>Mata-mata</strong>Abre somente quando os confrontos estiverem definidos oficialmente.</span></div>
+          <div class="rule"><b>3</b><span><strong>Trava definitiva</strong>Depois de confirmar, o participante não altera os palpites.</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Critérios de pontuação</h2>
+        <div class="rules">
+          <div class="rule"><b>1</b><span><strong>Placar exato</strong>Soma acerto de placar e acerto de vencedor ou empate, respeitando o teto da fase.</span></div>
+          <div class="rule"><b>2</b><span><strong>Vencedor ou empate</strong>Pontos para quem acertar o resultado geral da partida.</span></div>
+          <div class="rule"><b>3</b><span><strong>Gol de um time</strong>Pontos para quem acertar o número de gols de uma das equipes.</span></div>
+        </div>
+      </article>
+
+      <article class="card wide">
+        <h2>Pontos por fase</h2>
+        <table>
+          <thead>
+            <tr><th>Fase</th><th>Um time</th><th>Vencedor/empate</th><th>Placar</th><th>Teto exato</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Fase de grupos</td><td>1</td><td>2</td><td>3</td><td>5</td></tr>
+            <tr><td>16 avos</td><td>1,5</td><td>3</td><td>4,5</td><td>7,5</td></tr>
+            <tr><td>Oitavas</td><td>1,5</td><td>3</td><td>4,5</td><td>7,5</td></tr>
+            <tr><td>Quartas</td><td>1,5</td><td>3</td><td>4,5</td><td>7,5</td></tr>
+            <tr><td>Semi</td><td>2</td><td>4</td><td>6</td><td>10</td></tr>
+            <tr><td>Terceiro lugar e final</td><td>3</td><td>6</td><td>9</td><td>15</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h2>Bônus finais</h2>
+        <div class="rules">
+          <div class="rule"><b>75</b><span><strong>Campeão</strong>Acertar o campeão do torneio.</span></div>
+          <div class="rule"><b>50</b><span><strong>Vice-campeão</strong>Acertar o segundo colocado.</span></div>
+          <div class="rule"><b>25</b><span><strong>Terceiro lugar</strong>Acertar o terceiro colocado.</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Prorrogação e pênaltis</h2>
+        <div class="rules">
+          <div class="rule"><b>1</b><span><strong>Sem regra extra</strong>Não existe palpite separado para prorrogação ou disputa de pênaltis.</span></div>
+          <div class="rule"><b>2</b><span><strong>Placar do bolão</strong>O placar usado para pontuação segue o registro oficial definido pelo administrador.</span></div>
+          <div class="rule"><b>3</b><span><strong>Avanço no mata-mata</strong>O vencedor em pênaltis pode aparecer na tabela, mas não cria pontos extras.</span></div>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      Conceito visual selecionado. Todo texto visível está em português do Brasil.
+    </footer>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    const toggle = document.querySelector("[data-theme-toggle]");
+    const storedTheme = localStorage.getItem("bolao-tema");
+    const preferredTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+
+    function setTheme(theme) {
+      root.dataset.theme = theme;
+      localStorage.setItem("bolao-tema", theme);
+      if (!toggle) return;
+      toggle.textContent = theme === "dark" ? "Tema claro" : "Tema escuro";
+      toggle.setAttribute("aria-label", theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro");
+    }
+
+    setTheme(storedTheme || preferredTheme);
+    toggle?.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+  </script>
+</body>
+</html>

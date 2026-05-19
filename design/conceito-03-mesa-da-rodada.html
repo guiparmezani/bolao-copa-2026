@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conceito 03 | Mesa da Rodada</title>
+  <style>
+    :root {
+      --verde: #0a7a43;
+      --verde-escuro: #083423;
+      --amarelo: #f7cf42;
+      --azul: #1a58b8;
+      --laranja: #ef7b2d;
+      --texto: #15241f;
+      --muted: #617269;
+      --fundo: #fbf2d5;
+      --papel: #fffdf7;
+      --linha: rgba(21,36,31,.14);
+      --sombra: 0 18px 48px rgba(50, 63, 31, .12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(180deg, rgba(251,242,213,.92), rgba(251,242,213,1)),
+        url("https://commons.wikimedia.org/wiki/Special:FilePath/Brazilian_Football_Fans.jpg?width=1400");
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      color: var(--texto);
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .app {
+      width: min(1160px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 16px 0 42px;
+    }
+
+    .phone-nav {
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255,253,247,.92);
+      border: 1px solid var(--linha);
+      box-shadow: var(--sombra);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--verde-escuro);
+      font-weight: 950;
+    }
+
+    .badge {
+      width: 40px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      background: var(--verde);
+      color: var(--amarelo);
+      font-weight: 950;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.26);
+    }
+
+    .brand span {
+      overflow-wrap: anywhere;
+      line-height: 1.05;
+    }
+
+    .nav-links {
+      display: none;
+      gap: 16px;
+      color: var(--muted);
+      font-size: .92rem;
+      font-weight: 850;
+    }
+
+    .btn {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--linha);
+      background: var(--verde-escuro);
+      color: #ffffff;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .btn.light {
+      background: var(--papel);
+      color: var(--verde-escuro);
+    }
+
+    .hero {
+      min-height: calc(100vh - 86px);
+      display: grid;
+      align-items: end;
+      padding: 28px 0 18px;
+    }
+
+    .hero-board {
+      display: grid;
+      gap: 14px;
+    }
+
+    .headline {
+      padding: 18px;
+      border-radius: 8px;
+      background: rgba(255,253,247,.88);
+      border: 1px solid rgba(21,36,31,.12);
+      box-shadow: var(--sombra);
+    }
+
+    .label {
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #e8f4dd;
+      color: var(--verde-escuro);
+      font-size: .82rem;
+      font-weight: 950;
+      border: 1px solid rgba(10,122,67,.18);
+    }
+
+    h1 {
+      margin: 14px 0 0;
+      max-width: 760px;
+      color: var(--verde-escuro);
+      font-size: 3rem;
+      line-height: .98;
+      text-wrap: balance;
+    }
+
+    .headline p {
+      max-width: 650px;
+      margin: 14px 0 0;
+      color: #3d554a;
+      line-height: 1.55;
+      font-weight: 680;
+      font-size: 1.02rem;
+    }
+
+    .hero-actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .quick-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quick {
+      min-height: 104px;
+      padding: 14px;
+      border-radius: 8px;
+      background: var(--papel);
+      border: 1px solid var(--linha);
+      box-shadow: var(--sombra);
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+
+    .quick span {
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 820;
+      line-height: 1.3;
+    }
+
+    .quick strong {
+      color: var(--verde-escuro);
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .band {
+      margin-top: 14px;
+      padding: 20px 0;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--verde-escuro);
+      font-size: 1.45rem;
+      line-height: 1.08;
+    }
+
+    .section-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-weight: 680;
+      line-height: 1.4;
+    }
+
+    .surface {
+      border-radius: 8px;
+      background: rgba(255,253,247,.92);
+      border: 1px solid var(--linha);
+      box-shadow: var(--sombra);
+      overflow: hidden;
+    }
+
+    .ranking {
+      display: grid;
+    }
+
+    .rank-row {
+      min-height: 70px;
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-top: 1px solid var(--linha);
+    }
+
+    .rank-row:first-child { border-top: 0; }
+
+    .pos {
+      width: 36px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--amarelo);
+      color: var(--verde-escuro);
+      font-weight: 950;
+    }
+
+    .person {
+      min-width: 0;
+    }
+
+    .person strong {
+      display: block;
+      color: var(--verde-escuro);
+      overflow-wrap: anywhere;
+    }
+
+    .person span {
+      color: var(--muted);
+      font-size: .83rem;
+      font-weight: 760;
+    }
+
+    .points {
+      color: var(--azul);
+      font-size: 1.15rem;
+      font-weight: 950;
+    }
+
+    .round-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .ticket {
+      padding: 14px;
+      border-radius: 8px;
+      background: var(--papel);
+      border: 1px solid var(--linha);
+      box-shadow: var(--sombra);
+      display: grid;
+      gap: 12px;
+    }
+
+    .ticket-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 850;
+    }
+
+    .ticket-score {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+
+    .team {
+      min-width: 0;
+      color: var(--verde-escuro);
+      font-weight: 950;
+      overflow-wrap: anywhere;
+    }
+
+    .team:last-child { text-align: right; }
+
+    .score {
+      min-width: 72px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--azul);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 1.16rem;
+      font-weight: 950;
+    }
+
+    .status-panels {
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(255,253,247,.92);
+      border: 1px solid var(--linha);
+      box-shadow: var(--sombra);
+    }
+
+    .panel h3 {
+      margin: 0;
+      color: var(--verde-escuro);
+      font-size: 1.05rem;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 670;
+    }
+
+    .progress {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e8e0c8;
+    }
+
+    .progress span {
+      display: block;
+      width: var(--value);
+      height: 100%;
+      background: linear-gradient(90deg, var(--verde), var(--laranja));
+    }
+
+    .admin-actions {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .admin-actions li {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--linha);
+      color: var(--muted);
+      font-size: .88rem;
+      font-weight: 760;
+    }
+
+    .admin-actions li:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .admin-actions strong {
+      color: var(--verde-escuro);
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .mini {
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8f4dd;
+      color: var(--verde-escuro);
+      font-size: .78rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .rules {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rule {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--papel);
+      border: 1px solid var(--linha);
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.42;
+      box-shadow: var(--sombra);
+    }
+
+    .rule b {
+      width: 30px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--verde-escuro);
+      color: var(--amarelo);
+    }
+
+    footer {
+      padding: 18px 0 0;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 780px) {
+      .nav-links { display: flex; }
+      .hero-board { grid-template-columns: 1.25fr .75fr; align-items: end; }
+      h1 { font-size: 4.6rem; }
+      .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .round-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .status-panels { grid-template-columns: 1fr 1fr; }
+      .band { padding: 28px 0; }
+    }
+
+    @media (max-width: 430px) {
+      .phone-nav .btn.light { display: none; }
+      h1 { font-size: 2.55rem; }
+      .section-head { flex-direction: column; align-items: start; }
+      .rank-row { grid-template-columns: 40px minmax(0, 1fr); }
+      .points { grid-column: 2; }
+      .ticket-score { grid-template-columns: 1fr; }
+      .team:last-child { text-align: left; }
+      .score { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="phone-nav">
+      <a class="brand" href="#"><span class="badge">BF</span><span>Bolão dos Facabundos 2026</span></a>
+      <nav class="nav-links" aria-label="Navegação principal">
+        <a href="#ranking">Ranking</a>
+        <a href="#rodada">Rodada</a>
+        <a href="#palpites">Palpites</a>
+        <a href="#regras">Regras</a>
+      </nav>
+      <a class="btn light" href="#admin">Admin</a>
+      <a class="btn" href="#">Entrar</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-board">
+          <div class="headline">
+            <span class="label">🇧🇷 Clima de mesa, churrasco e placar secando amigo</span>
+            <h1>O bolão com cara de grupo de WhatsApp organizado.</h1>
+            <p>Conceito mais leve e social: menos “central de dados”, mais rodada entre amigos, com ranking sempre visível e ações simples no celular.</p>
+            <div class="hero-actions">
+              <a class="btn" href="#">Criar conta</a>
+              <a class="btn light" href="#ranking">Ver ranking</a>
+            </div>
+          </div>
+          <div class="quick-grid" aria-label="Resumo rápido">
+            <div class="quick"><span>Palpites da fase de grupos</span><strong>58/72</strong></div>
+            <div class="quick"><span>Jogos publicados pelo admin</span><strong>72</strong></div>
+            <div class="quick"><span>Participantes confirmados</span><strong>18</strong></div>
+            <div class="quick"><span>Rodada com mais exatos</span><strong>7</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="ranking">
+        <div class="section-head">
+          <div>
+            <h2>Ranking da resenha</h2>
+            <p>A classificação aparece pública sem revelar palpites bloqueados.</p>
+          </div>
+          <span class="label">Atualizado agora</span>
+        </div>
+        <div class="surface ranking">
+          <div class="rank-row"><span class="pos">1</span><span class="person"><strong>Bernardo</strong><span>12 placares exatos</span></span><span class="points">144 pts</span></div>
+          <div class="rank-row"><span class="pos">2</span><span class="person"><strong>Gui</strong><span>31 vencedores certos</span></span><span class="points">141 pts</span></div>
+          <div class="rank-row"><span class="pos">3</span><span class="person"><strong>Buss</strong><span>melhor pontuação da rodada</span></span><span class="points">133 pts</span></div>
+        </div>
+      </section>
+
+      <section class="band" id="rodada">
+        <div class="section-head">
+          <div>
+            <h2>Mesa da rodada</h2>
+            <p>Jogos agrupados por data, com placar e status bem direto.</p>
+          </div>
+          <span class="label">Horário de Brasília</span>
+        </div>
+        <div class="round-grid">
+          <article class="ticket">
+            <div class="ticket-top"><span>Grupo B • 13:00</span><span>Encerrado</span></div>
+            <div class="ticket-score"><span class="team">🏴 Inglaterra</span><span class="score">1 x 1</span><span class="team">🇺🇸 EUA</span></div>
+          </article>
+          <article class="ticket">
+            <div class="ticket-top"><span>Grupo G • 16:00</span><span>Hoje</span></div>
+            <div class="ticket-score"><span class="team">🇧🇷 Brasil</span><span class="score">- x -</span><span class="team">🇷🇸 Sérvia</span></div>
+          </article>
+          <article class="ticket">
+            <div class="ticket-top"><span>16 avos • a definir</span><span>Bloqueado</span></div>
+            <div class="ticket-score"><span class="team">1º Grupo A</span><span class="score">- x -</span><span class="team">3º melhor</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="band" id="palpites">
+        <div class="section-head">
+          <div>
+            <h2>Palpites e administração</h2>
+            <p>O mesmo visual serve para jogador comum e para ações de teste do admin.</p>
+          </div>
+        </div>
+        <div class="status-panels">
+          <article class="panel">
+            <h3>Meu envio</h3>
+            <p>Revise seus placares antes de confirmar. Depois de travar, só o administrador consegue intervir com registro de auditoria.</p>
+            <div class="progress"><span style="--value: 80%"></span></div>
+            <a class="btn" href="#">Continuar preenchendo</a>
+          </article>
+          <article class="panel" id="admin">
+            <h3>Painel admin</h3>
+            <ul class="admin-actions">
+              <li><span><strong>Publicar jogos</strong>Importados e aguardando revisão.</span><span class="mini">72</span></li>
+              <li><span><strong>Gerir usuários</strong>Adicionar, editar, desativar ou resetar senha.</span><span class="mini">18</span></li>
+              <li><span><strong>Simular rodada</strong>Ação disponível apenas em teste.</span><span class="mini">Teste</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="band" id="regras">
+        <div class="section-head">
+          <div>
+            <h2>Regras na tela</h2>
+            <p>Texto simples, em português, direto para reduzir dúvida no grupo.</p>
+          </div>
+        </div>
+        <div class="rules">
+          <div class="rule"><b>1</b><span>Palpite confirmado não muda.</span></div>
+          <div class="rule"><b>2</b><span>O mata-mata abre só quando os confrontos estiverem definidos.</span></div>
+          <div class="rule"><b>3</b><span>Campeão, vice e terceiro lugar seguem a regra de bônus do bolão de 2022.</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Conceito visual. Imagem de torcida via Wikimedia Commons para avaliação da direção social.
+    </footer>
+  </div>
+</body>
+</html>

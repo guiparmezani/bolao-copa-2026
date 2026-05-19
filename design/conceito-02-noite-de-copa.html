@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conceito 02 | Noite de Copa</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --fundo: #061412;
+      --texto: #eef9ee;
+      --muted: #a4b9ae;
+      --painel: rgba(12, 34, 30, .86);
+      --painel-forte: rgba(8, 25, 22, .92);
+      --linha: rgba(231, 247, 236, .15);
+      --verde: #10a66a;
+      --amarelo: #f3c53b;
+      --azul: #67a6ff;
+      --sombra: 0 24px 70px rgba(0, 0, 0, .32);
+      --overlay: linear-gradient(180deg, rgba(6,20,18,.10), rgba(6,20,18,.76) 62%, #061412 100%);
+      --hero-card: linear-gradient(180deg, rgba(6,20,18,.18), rgba(6,20,18,.72));
+      --button-bg: rgba(255,255,255,.08);
+      --button-border: rgba(255,255,255,.18);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --fundo: #f3efde;
+      --texto: #102720;
+      --muted: #62746c;
+      --painel: rgba(255, 253, 246, .88);
+      --painel-forte: rgba(255, 253, 246, .94);
+      --linha: rgba(16, 39, 32, .15);
+      --verde: #078957;
+      --amarelo: #e8b833;
+      --azul: #1d63c9;
+      --sombra: 0 24px 70px rgba(52, 62, 39, .18);
+      --overlay: linear-gradient(180deg, rgba(243,239,222,.10), rgba(243,239,222,.74) 66%, #f3efde 100%);
+      --hero-card: linear-gradient(180deg, rgba(255,253,246,.48), rgba(255,253,246,.84));
+      --button-bg: rgba(255,255,255,.62);
+      --button-border: rgba(16,39,32,.14);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--texto);
+      background: var(--fundo);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .shell {
+      min-height: 100vh;
+      background:
+        var(--overlay),
+        url("https://commons.wikimedia.org/wiki/Special:FilePath/The_Peninsula_Stadium_at_night_-_Salford_City_-_Aug_24.jpg?width=1800");
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+    }
+
+    .nav {
+      width: min(1200px, calc(100% - 28px));
+      min-height: 72px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: #eef9ee;
+      font-weight: 950;
+      text-shadow: 0 2px 18px rgba(0,0,0,.45);
+    }
+
+    .brand span:last-child {
+      overflow-wrap: anywhere;
+      line-height: 1.05;
+    }
+
+    .mark {
+      width: 42px;
+      aspect-ratio: 1;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--amarelo), var(--verde));
+      color: #082016;
+      font-weight: 950;
+    }
+
+    .menu {
+      display: none;
+      gap: 18px;
+      color: rgba(238,249,238,.78);
+      font-size: .93rem;
+      font-weight: 850;
+      text-shadow: 0 2px 18px rgba(0,0,0,.45);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .button {
+      min-height: 42px;
+      border: 1px solid var(--button-border);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--texto);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .button.primary {
+      border-color: transparent;
+      background: var(--amarelo);
+      color: #0c2118;
+    }
+
+    .theme-toggle {
+      min-width: 106px;
+    }
+
+    .hero {
+      width: min(1200px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 34px 0 30px;
+    }
+
+    .hero-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-copy {
+      min-height: 470px;
+      display: grid;
+      align-content: end;
+      gap: 16px;
+      padding: 18px;
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: var(--hero-card);
+      box-shadow: var(--sombra);
+      backdrop-filter: blur(2px);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(17,166,106,.16);
+      color: var(--texto);
+      border: 1px solid rgba(17,166,106,.32);
+      font-size: .82rem;
+      font-weight: 900;
+    }
+
+    h1 {
+      max-width: 740px;
+      margin: 0;
+      font-size: 3rem;
+      line-height: .96;
+      color: var(--texto);
+      text-wrap: balance;
+    }
+
+    .hero-copy p {
+      max-width: 650px;
+      margin: 0;
+      color: var(--texto);
+      font-size: 1.03rem;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .card {
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      background: var(--painel);
+      box-shadow: var(--sombra);
+    }
+
+    .card-head {
+      min-height: 64px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--linha);
+    }
+
+    h2, h3 {
+      margin: 0;
+      color: var(--texto);
+      line-height: 1.1;
+    }
+
+    h2 { font-size: 1.18rem; }
+    h3 { font-size: 1rem; }
+
+    .meta {
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 850;
+    }
+
+    .feature-match {
+      display: grid;
+      gap: 13px;
+      padding: 14px;
+    }
+
+    .teams {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .team {
+      min-width: 0;
+      color: var(--texto);
+      font-weight: 950;
+      overflow-wrap: anywhere;
+    }
+
+    .team:last-child { text-align: right; }
+
+    .score {
+      width: 82px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--painel-forte);
+      border: 1px solid rgba(243,197,59,.42);
+      color: var(--amarelo);
+      font-size: 1.32rem;
+      font-weight: 950;
+    }
+
+    .timeline {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(127,140,132,.18);
+      overflow: hidden;
+    }
+
+    .timeline span {
+      display: block;
+      width: 63%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--verde), var(--amarelo));
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .metric {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--linha);
+    }
+
+    :root[data-theme="light"] .metric,
+    :root[data-theme="light"] .match-mini {
+      background: rgba(16,39,32,.035);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--texto);
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .band {
+      width: min(1200px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 18px 0 42px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .layout {
+      display: grid;
+      gap: 14px;
+    }
+
+    .row {
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      border-top: 1px solid var(--linha);
+    }
+
+    .row:first-child { border-top: 0; }
+
+    .rank {
+      width: 32px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(127,140,132,.14);
+      color: var(--amarelo);
+      font-weight: 950;
+    }
+
+    .name { min-width: 0; }
+
+    .name strong {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--texto);
+    }
+
+    .name span {
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 760;
+    }
+
+    .pts {
+      color: var(--azul);
+      font-size: 1.18rem;
+      font-weight: 950;
+    }
+
+    .matches {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .match-mini {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--linha);
+    }
+
+    .match-mini .line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 850;
+    }
+
+    .match-mini strong {
+      color: var(--texto);
+      line-height: 1.35;
+    }
+
+    .info {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .info strong {
+      color: var(--texto);
+      font-size: 1.08rem;
+    }
+
+    footer {
+      width: min(1200px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 0 0 36px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    @media (min-width: 820px) {
+      .menu { display: flex; }
+      .hero-grid { grid-template-columns: 1.14fr .86fr; align-items: stretch; }
+      .hero { padding-top: 42px; }
+      h1 { font-size: 4.8rem; }
+      .layout { grid-template-columns: 1.05fr .95fr; align-items: start; }
+      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .band { padding-top: 28px; }
+    }
+
+    @media (max-width: 430px) {
+      .theme-toggle { width: 42px; padding: 0; font-size: 0; }
+      .theme-toggle::before { content: "◐"; font-size: 1rem; }
+      h1 { font-size: 2.5rem; }
+      .hero-copy { min-height: 410px; padding: 14px; }
+      .metrics { grid-template-columns: 1fr; }
+      .teams { grid-template-columns: 1fr; }
+      .team:last-child { text-align: left; }
+      .score { width: 100%; }
+      .row { grid-template-columns: 36px minmax(0, 1fr); }
+      .pts { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <nav class="nav" aria-label="Navegação principal">
+        <a class="brand" href="#"><span class="mark">BF</span><span>Bolão dos Facabundos 2026</span></a>
+        <div class="menu">
+          <a href="#ranking">Ranking</a>
+          <a href="#jogos">Jogos</a>
+          <a href="conceito-02-regras.html">Regras</a>
+        </div>
+        <div class="actions">
+          <button class="button theme-toggle" type="button" data-theme-toggle>Alternar tema</button>
+          <a class="button primary" href="#entrar">Entrar</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="entrar">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="chips">
+              <span class="chip">Tabela pública</span>
+              <span class="chip">Copa 2026</span>
+            </div>
+            <h1>A central da resenha durante a Copa.</h1>
+            <p>Uma experiência densa e focada em placar. A página inicial mostra só informações públicas: ranking, calendário, regras e entrada para participantes.</p>
+            <div class="chips">
+              <a class="button primary" href="#">Criar conta</a>
+              <a class="button" href="#jogos">Ver jogos</a>
+            </div>
+          </div>
+
+          <aside class="card" aria-label="Jogo em destaque">
+            <div class="card-head">
+              <h2>Jogo em destaque</h2>
+              <span class="meta">Ao vivo</span>
+            </div>
+            <div class="feature-match">
+              <div class="teams">
+                <span class="team">🇧🇷 Brasil</span>
+                <span class="score">2 x 1</span>
+                <span class="team">🇲🇦 Marrocos</span>
+              </div>
+              <div class="timeline"><span aria-hidden="true">&nbsp;</span></div>
+              <span class="meta">Grupo G • 63 minutos • placar oficial sincronizado</span>
+            </div>
+            <div class="metrics">
+              <div class="metric"><strong>104</strong><span>jogos na tabela</span></div>
+              <div class="metric"><strong>72</strong><span>fase de grupos</span></div>
+              <div class="metric"><strong>32</strong><span>mata-mata</span></div>
+              <div class="metric"><strong>2</strong><span>fases de envio</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="layout">
+          <article class="card" id="ranking">
+            <div class="card-head">
+              <h2>Ranking geral</h2>
+              <span class="meta">Atualizado às 18:42</span>
+            </div>
+            <div>
+              <div class="row"><span class="rank">1</span><span class="name"><strong>Buss</strong><span>12 exatos • 31 vencedores</span></span><span class="pts">148</span></div>
+              <div class="row"><span class="rank">2</span><span class="name"><strong>Fred</strong><span>10 exatos • 30 vencedores</span></span><span class="pts">139</span></div>
+              <div class="row"><span class="rank">3</span><span class="name"><strong>Lemos</strong><span>9 exatos • 29 vencedores</span></span><span class="pts">131</span></div>
+              <div class="row"><span class="rank">4</span><span class="name"><strong>Vica</strong><span>8 exatos • 29 vencedores</span></span><span class="pts">126</span></div>
+            </div>
+          </article>
+
+          <article class="card" id="jogos">
+            <div class="card-head">
+              <h2>Próximos jogos</h2>
+              <span class="meta">Horário de Brasília</span>
+            </div>
+            <div class="matches">
+              <div class="match-mini"><div class="line"><span>Hoje • 20:00</span><span>Publicado</span></div><strong>🇵🇹 Portugal x 🇺🇾 Uruguai</strong></div>
+              <div class="match-mini"><div class="line"><span>Amanhã • 16:00</span><span>Grupo H</span></div><strong>🇧🇷 Brasil x 🇨🇭 Suíça</strong></div>
+              <div class="match-mini"><div class="line"><span>Mata-mata</span><span>A definir</span></div><strong>1º Grupo F x 3º melhor</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="layout">
+          <article class="card" id="palpites">
+            <div class="card-head">
+              <h2>Como funciona</h2>
+              <span class="meta">Modelo 2022</span>
+            </div>
+            <div class="info">
+              <strong>Dois momentos para palpitar</strong>
+              <span>Primeiro entram os placares da fase de grupos. Depois que os confrontos do mata-mata estiverem definidos, abre a segunda rodada de palpites.</span>
+              <a class="button" href="conceito-02-regras.html">Ler regras completas</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>Pronto para entrar?</h2>
+              <span class="meta">Conta obrigatória</span>
+            </div>
+            <div class="info">
+              <strong>Seus palpites ficam protegidos</strong>
+              <span>Depois de entrar, você vê suas telas privadas de envio. A página inicial continua limpa, pública e sem dados restritos.</span>
+              <a class="button primary" href="#">Criar conta ou entrar</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Conceito visual selecionado. Imagem de estádio via Wikimedia Commons para avaliação da direção noturna.
+    </footer>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const toggle = document.querySelector("[data-theme-toggle]");
+    const storedTheme = localStorage.getItem("bolao-tema");
+    const preferredTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+
+    function setTheme(theme) {
+      root.dataset.theme = theme;
+      localStorage.setItem("bolao-tema", theme);
+      if (!toggle) return;
+      toggle.textContent = theme === "dark" ? "Tema claro" : "Tema escuro";
+      toggle.setAttribute("aria-label", theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro");
+    }
+
+    setTheme(storedTheme || preferredTheme);
+    toggle?.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+  </script>
+</body>
+</html>
