@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { formError, requireSameOrigin } from "@/lib/auth/http";
+import { playerOnlyApiError } from "@/lib/auth/player";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   knockoutPredictionErrorResponse,
@@ -13,9 +14,14 @@ export async function POST(request: NextRequest) {
   }
 
   const user = await getCurrentUser();
+  const playerError = playerOnlyApiError(user);
+
+  if (playerError) {
+    return playerError;
+  }
 
   if (!user) {
-    return Response.json({ error: "Faça login para salvar seus palpites." }, { status: 401 });
+    return Response.json({ error: "Faça login para enviar seus palpites." }, { status: 401 });
   }
 
   try {

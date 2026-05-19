@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { PlayerAppFrame } from "@/components/app-frame";
+import { requirePlayerPage } from "@/lib/auth/player";
 import {
   getPlacementPredictionState,
   placementLabels,
@@ -17,11 +17,7 @@ function formatDeadline(value: Date) {
 }
 
 export default async function WinnersPredictionsPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requirePlayerPage();
 
   const state = await getPlacementPredictionState(user.id);
   const initialPlacements = Object.fromEntries(
@@ -32,18 +28,20 @@ export default async function WinnersPredictionsPage() {
   ) as Record<(typeof state.placementKinds)[number], string>;
 
   return (
-    <main className="matches-page">
-      <WinnersPredictionForm
-        deadlineLabel={formatDeadline(state.deadline)}
-        initialPlacements={initialPlacements}
-        isConfirmed={state.isConfirmed}
-        isOpen={state.window.isOpen}
-        placements={state.placementKinds.map((placement) => ({
-          key: placement,
-          label: placementLabels[placement],
-        }))}
-        teams={state.teams}
-      />
-    </main>
+    <PlayerAppFrame user={user}>
+      <main className="matches-page">
+        <WinnersPredictionForm
+          deadlineLabel={formatDeadline(state.deadline)}
+          initialPlacements={initialPlacements}
+          isConfirmed={state.isConfirmed}
+          isOpen={state.window.isOpen}
+          placements={state.placementKinds.map((placement) => ({
+            key: placement,
+            label: placementLabels[placement],
+          }))}
+          teams={state.teams}
+        />
+      </main>
+    </PlayerAppFrame>
   );
 }

@@ -14,6 +14,7 @@ const exporters = {
       select: {
         id: true,
         username: true,
+        email: true,
         displayName: true,
         role: true,
         status: true,
@@ -35,17 +36,72 @@ const exporters = {
       },
       orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
     }),
-  predictions: () =>
-    prisma.matchPrediction.findMany({
-      select: {
-        userId: true,
-        matchId: true,
-        homeGoals: true,
-        awayGoals: true,
-        confirmedAt: true,
-      },
-      orderBy: { createdAt: "asc" },
-    }),
+  predictions: async () => {
+    const [matchPredictions, placementPredictions] = await Promise.all([
+      prisma.matchPrediction.findMany({
+        include: {
+          match: {
+            include: {
+              awayTeam: true,
+              homeTeam: true,
+            },
+          },
+          submission: true,
+          user: true,
+        },
+        orderBy: [
+          { user: { displayName: "asc" } },
+          { match: { kickoffAt: "asc" } },
+          { match: { matchNumber: "asc" } },
+        ],
+      }),
+      prisma.placementPrediction.findMany({
+        include: {
+          submission: true,
+          team: true,
+          user: true,
+        },
+        orderBy: [{ user: { displayName: "asc" } }, { placement: "asc" }],
+      }),
+    ]);
+
+    return [
+      ...matchPredictions.map((prediction) => ({
+        tipo: "placar",
+        jogador: prediction.user.displayName,
+        usuario: prediction.user.username,
+        faseEnvio: prediction.submission.phaseGroup,
+        statusEnvio: prediction.submission.status,
+        confirmadoEm: prediction.confirmedAt,
+        jogo: prediction.match.matchNumber,
+        faseJogo: prediction.match.phase,
+        dataJogo: prediction.match.kickoffAt,
+        mandante: prediction.match.homeTeam?.namePt ?? prediction.match.homePlaceholder,
+        visitante: prediction.match.awayTeam?.namePt ?? prediction.match.awayPlaceholder,
+        palpiteMandante: prediction.homeGoals,
+        palpiteVisitante: prediction.awayGoals,
+        colocacao: "",
+        selecaoEscolhida: "",
+      })),
+      ...placementPredictions.map((prediction) => ({
+        tipo: "colocacao",
+        jogador: prediction.user.displayName,
+        usuario: prediction.user.username,
+        faseEnvio: prediction.submission.phaseGroup,
+        statusEnvio: prediction.submission.status,
+        confirmadoEm: prediction.confirmedAt,
+        jogo: "",
+        faseJogo: "",
+        dataJogo: "",
+        mandante: "",
+        visitante: "",
+        palpiteMandante: "",
+        palpiteVisitante: "",
+        colocacao: prediction.placement,
+        selecaoEscolhida: prediction.team.namePt,
+      })),
+    ];
+  },
   scores: () =>
     prisma.matchPredictionScore.findMany({
       select: {
@@ -72,6 +128,26 @@ const exporters = {
     }),
 } as const;
 
+const fallbackHeaders = {
+  predictions: [
+    "tipo",
+    "jogador",
+    "usuario",
+    "faseEnvio",
+    "statusEnvio",
+    "confirmadoEm",
+    "jogo",
+    "faseJogo",
+    "dataJogo",
+    "mandante",
+    "visitante",
+    "palpiteMandante",
+    "palpiteVisitante",
+    "colocacao",
+    "selecaoEscolhida",
+  ],
+} as const;
+
 function serialize(value: unknown) {
   if (value instanceof Date) {
     return value.toISOString();
@@ -84,16 +160,17 @@ function serialize(value: unknown) {
   return value ?? "";
 }
 
-function toCsv(rows: Array<Record<string, unknown>>) {
-  if (rows.length === 0) {
+function toCsv(rows: Array<Record<string, unknown>>, headers?: readonly string[]) {
+  const csvHeaders = rows.length > 0 ? Object.keys(rows[0]) : headers;
+
+  if (!csvHeaders || csvHeaders.length === 0) {
     return "";
   }
 
-  const headers = Object.keys(rows[0]);
   const lines = [
-    headers.join(","),
+    csvHeaders.join(","),
     ...rows.map((row) =>
-      headers
+      csvHeaders
         .map((header) => `"${String(serialize(row[header])).replaceAll('"', '""')}"`)
         .join(","),
     ),
@@ -123,10 +200,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
     after: { rows: rows.length },
   });
 
-  return new Response(toCsv(rows as Array<Record<string, unknown>>), {
-    headers: {
-      "content-disposition": `attachment; filename="${entity}.csv"`,
-      "content-type": "text/csv; charset=utf-8",
+  return new Response(
+    toCsv(
+      rows as Array<Record<string, unknown>>,
+      fallbackHeaders[entity as keyof typeof fallbackHeaders],
+    ),
+    {
+      headers: {
+        "content-disposition": `attachment; filename="${entity}.csv"`,
+        "content-type": "text/csv; charset=utf-8",
+      },
     },
-  });
+  );
 }

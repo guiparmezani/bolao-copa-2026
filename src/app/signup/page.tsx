@@ -10,7 +10,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const user = await getCurrentUser();
 
   if (user) {
-    redirect("/dashboard");
+    redirect(user.role === "admin" ? "/admin" : "/dashboard");
   }
 
   const { erro } = await searchParams;
@@ -36,6 +36,17 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             />
           </label>
           <label>
+            <span>Email</span>
+            <input
+              autoComplete="email"
+              maxLength={254}
+              name="email"
+              required
+              type="email"
+            />
+            <small>Vamos usar este email para confirmar sua conta e enviar seus palpites.</small>
+          </label>
+          <label>
             <span>Nome de usuário</span>
             <input
               autoComplete="username"
@@ -43,7 +54,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
               maxLength={32}
               minLength={3}
               name="username"
-              pattern="[a-zA-Z0-9_.-]+"
+              pattern={"[a-zA-Z0-9_.\\-]+"}
               required
             />
             <small>Use letras, números, ponto, hífen ou sublinhado.</small>

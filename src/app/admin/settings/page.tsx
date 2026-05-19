@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 const editableSettings = [
   ["group_submission_deadline", "Prazo fase de grupos"],
   ["knockout_submission_deadline", "Prazo mata-mata"],
-  ["placement_submission_deadline", "Prazo colocações"],
   ["knockout_predictions_enabled", "Mata-mata habilitado"],
   ["placement_predictions_enabled", "Colocações habilitadas"],
   ["prediction_reveal_policy", "Política de revelação"],

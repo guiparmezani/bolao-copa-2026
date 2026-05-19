@@ -53,7 +53,7 @@ const teamMeta = {
   Mexico: ["México", "🇲🇽", "MX"],
   "South Africa": ["África do Sul", "🇿🇦", "ZA"],
   "South Korea": ["Coreia do Sul", "🇰🇷", "KR"],
-  "Czech Republic": ["Tchéquia", "🇨🇿", "CZ"],
+  "Czech Republic": ["Rep. Tcheca", "🇨🇿", "CZ"],
   Canada: ["Canadá", "🇨🇦", "CA"],
   "Bosnia & Herzegovina": ["Bósnia e Herzegovina", "🇧🇦", "BA"],
   Qatar: ["Catar", "🇶🇦", "QA"],
@@ -70,7 +70,7 @@ const teamMeta = {
   Curaçao: ["Curaçao", "🇨🇼", "CW"],
   "Ivory Coast": ["Costa do Marfim", "🇨🇮", "CI"],
   Ecuador: ["Equador", "🇪🇨", "EC"],
-  Netherlands: ["Países Baixos", "🇳🇱", "NL"],
+  Netherlands: ["Holanda", "🇳🇱", "NL"],
   Japan: ["Japão", "🇯🇵", "JP"],
   Sweden: ["Suécia", "🇸🇪", "SE"],
   Tunisia: ["Tunísia", "🇹🇳", "TN"],
@@ -578,11 +578,11 @@ async function seedScoringDefaults() {
   await prisma.appSetting.upsert({
     where: { key: "placement_submission_deadline" },
     update: {
-      value: "2026-07-17T02:59:00.000Z",
+      value: "2026-06-12T02:59:00.000Z",
     },
     create: {
       key: "placement_submission_deadline",
-      value: "2026-07-17T02:59:00.000Z",
+      value: "2026-06-12T02:59:00.000Z",
     },
   });
 

@@ -112,6 +112,22 @@ export function WinnersPredictionForm({
     });
   }
 
+  const actionButtons = (
+    <>
+      <button className="button" disabled={!editable || isPending} onClick={saveDraft} type="button">
+        Salvar rascunho
+      </button>
+      <button
+        className="button primary"
+        disabled={!editable || isPending || teams.length === 0}
+        onClick={() => setConfirmOpen(true)}
+        type="button"
+      >
+        Confirmar palpites
+      </button>
+    </>
+  );
+
   return (
     <>
       <section className="prediction-toolbar">
@@ -123,19 +139,7 @@ export function WinnersPredictionForm({
             confirmação ou até o prazo: {deadlineLabel}.
           </p>
         </div>
-        <div className="prediction-actions">
-          <button className="button" disabled={!editable || isPending} onClick={saveDraft} type="button">
-            Salvar rascunho
-          </button>
-          <button
-            className="button primary"
-            disabled={!editable || isPending || teams.length === 0}
-            onClick={() => setConfirmOpen(true)}
-            type="button"
-          >
-            Confirmar palpites
-          </button>
-        </div>
+        <div className="prediction-actions">{actionButtons}</div>
       </section>
 
       {status || error ? (
@@ -162,6 +166,10 @@ export function WinnersPredictionForm({
             </select>
           </label>
         ))}
+      </section>
+
+      <section className="prediction-actions prediction-actions-bottom" aria-label="Ações de palpite">
+        {actionButtons}
       </section>
 
       {confirmOpen ? (

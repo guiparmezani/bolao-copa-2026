@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 export const defaultGroupSubmissionDeadlineIso = "2026-06-12T02:59:00.000Z";
 export const defaultKnockoutSubmissionDeadlineIso = "2026-06-28T02:59:00.000Z";
-export const defaultPlacementSubmissionDeadlineIso = "2026-07-17T02:59:00.000Z";
+export const defaultPlacementSubmissionDeadlineIso = defaultGroupSubmissionDeadlineIso;
 export const groupSubmissionTimeZone = "America/Sao_Paulo";
 
 export function parseSettingDate(value: Prisma.JsonValue | null | undefined) {

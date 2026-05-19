@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const storageKey = "bolao-tema";
+const themeChangeEvent = "bolao-tema-change";
 
 type Theme = "dark" | "light";
 
@@ -21,15 +22,47 @@ function getInitialTheme(): Theme {
     : "dark";
 }
 
+function getServerTheme(): Theme {
+  return "dark";
+}
+
+function subscribeToTheme(onThemeChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+  const syncTheme = () => {
+    document.documentElement.dataset.theme = getInitialTheme();
+    onThemeChange();
+  };
+
+  mediaQuery.addEventListener("change", syncTheme);
+  window.addEventListener("storage", syncTheme);
+  window.addEventListener(themeChangeEvent, syncTheme);
+
+  return () => {
+    mediaQuery.removeEventListener("change", syncTheme);
+    window.removeEventListener("storage", syncTheme);
+    window.removeEventListener(themeChangeEvent, syncTheme);
+  };
+}
+
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    getInitialTheme,
+    getServerTheme,
+  );
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem(storageKey, nextTheme);
+    window.dispatchEvent(new Event(themeChangeEvent));
   }
+
+  const label = theme === "dark" ? "Tema claro" : "Tema escuro";
 
   return (
     <button
@@ -38,7 +71,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
     >
-      {theme === "dark" ? "Tema claro" : "Tema escuro"}
+      {label}
     </button>
   );
 }

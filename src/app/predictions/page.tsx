@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { canRevealMatchPredictions } from "@/lib/predictions/reveal";
+import { placementLabels } from "@/lib/predictions/placement";
 import { prisma } from "@/lib/prisma";
 import {
   formatBrazilDate,
@@ -11,51 +11,99 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type ComparisonMatch = Awaited<ReturnType<typeof getComparisonMatches>>[number];
+type PredictionsPageProps = {
+  searchParams?: Promise<{ usuario?: string }>;
+};
 
-async function getComparisonMatches() {
-  return prisma.match.findMany({
+async function getSubmittedUsers() {
+  return prisma.user.findMany({
     where: {
-      publicationStatus: "published",
-    },
-    include: {
-      awayTeam: true,
-      homeTeam: true,
-      matchPredictions: {
-        where: {
-          confirmedAt: {
-            not: null,
-          },
-          submission: {
-            status: "confirmed",
-          },
-          user: {
-            status: "active",
-          },
-        },
-        include: {
-          score: true,
-          user: true,
-        },
-        orderBy: {
-          user: {
-            displayName: "asc",
-          },
+      role: "player",
+      status: "active",
+      predictionSubmissions: {
+        some: {
+          status: "confirmed",
         },
       },
     },
-    orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
+    select: {
+      displayName: true,
+      id: true,
+      username: true,
+    },
+    orderBy: [{ displayName: "asc" }, { username: "asc" }],
   });
 }
 
-function getTeamName(
-  team: ComparisonMatch["homeTeam"],
+async function getUserPredictionData(userId: string) {
+  const [matchPredictions, placementPredictions] = await Promise.all([
+    prisma.matchPrediction.findMany({
+      where: {
+        confirmedAt: {
+          not: null,
+        },
+        submission: {
+          status: "confirmed",
+        },
+        userId,
+      },
+      include: {
+        match: {
+          include: {
+            awayTeam: true,
+            homeTeam: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          match: {
+            kickoffAt: "asc",
+          },
+        },
+        {
+          match: {
+            matchNumber: "asc",
+          },
+        },
+      ],
+    }),
+    prisma.placementPrediction.findMany({
+      where: {
+        confirmedAt: {
+          not: null,
+        },
+        submission: {
+          status: "confirmed",
+        },
+        userId,
+      },
+      include: {
+        team: true,
+      },
+      orderBy: {
+        placement: "asc",
+      },
+    }),
+  ]);
+
+  return { matchPredictions, placementPredictions };
+}
+
+type SubmittedMatchPrediction = Awaited<
+  ReturnType<typeof getUserPredictionData>
+>["matchPredictions"][number];
+
+function teamName(
+  team: SubmittedMatchPrediction["match"]["homeTeam"],
   placeholder: string | null,
 ) {
   return team ? `${team.flagEmoji} ${team.namePt}` : placeholder ?? "A definir";
 }
 
-function getOfficialScore(match: ComparisonMatch) {
+function officialScore(prediction: SubmittedMatchPrediction) {
+  const { match } = prediction;
+
   if (match.homeGoals === null || match.awayGoals === null) {
     return "x";
   }
@@ -63,117 +111,162 @@ function getOfficialScore(match: ComparisonMatch) {
   return `${match.homeGoals} x ${match.awayGoals}`;
 }
 
-function formatPredictionScore(match: ComparisonMatch, prediction: ComparisonMatch["matchPredictions"][number]) {
-  if (!canRevealMatchPredictions(match)) {
-    return "Oculto";
-  }
-
-  return `${prediction.homeGoals} x ${prediction.awayGoals}`;
-}
-
-function formatPoints(value: unknown) {
-  if (!value || typeof value !== "object" || !("toNumber" in value)) {
-    return "0";
-  }
-
-  const points = (value as { toNumber: () => number }).toNumber();
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: points % 1 === 0 ? 0 : 1,
-  }).format(points);
-}
-
-export default async function PredictionsComparisonPage() {
-  const matches = await getComparisonMatches();
-  const revealedCount = matches.filter(canRevealMatchPredictions).length;
-  const confirmedPredictionCount = matches.reduce(
-    (total, match) => total + match.matchPredictions.length,
-    0,
+function groupByPhase(predictions: SubmittedMatchPrediction[]) {
+  return predictions.reduce<Map<string, SubmittedMatchPrediction[]>>(
+    (groups, prediction) => {
+      const current = groups.get(prediction.match.phase) ?? [];
+      current.push(prediction);
+      groups.set(prediction.match.phase, current);
+      return groups;
+    },
+    new Map(),
   );
+}
+
+export default async function PublicPredictionsPage({
+  searchParams,
+}: PredictionsPageProps) {
+  const params = (await searchParams) ?? {};
+  const users = await getSubmittedUsers();
+  const selectedUser =
+    users.find((user) => user.id === params.usuario) ?? users[0] ?? null;
+  const predictionData = selectedUser
+    ? await getUserPredictionData(selectedUser.id)
+    : { matchPredictions: [], placementPredictions: [] };
+  const groupedPredictions = groupByPhase(predictionData.matchPredictions);
 
   return (
     <main className="matches-page">
       <section className="matches-header">
         <div>
-          <span className="chip">Comparação pública</span>
-          <h1>Palpites da galera</h1>
+          <span className="chip">Palpites públicos</span>
+          <h1>Comparar</h1>
           <p>
-            Todo palpite confirmado aparece aqui, mas o placar de cada jogador
-            só é revelado depois que o jogo termina oficialmente.
+            Veja os palpites de quem já confirmou o envio. Rascunhos não
+            aparecem aqui.
           </p>
         </div>
         <div className="match-count">
-          <strong>{revealedCount}</strong>
-          <span>jogos revelados</span>
+          <strong>{users.length}</strong>
+          <span>jogadores</span>
         </div>
       </section>
 
-      <section className="match-tools" aria-label="Resumo da comparação">
-        <div className="filter-list">
-          <span className="filter-chip" aria-current="page">
-            {confirmedPredictionCount} palpites confirmados
-          </span>
-          <span className="filter-chip">{matches.length} jogos publicados</span>
-        </div>
-        <Link className="button" href="/rules">
-          Ver regras de pontuação
-        </Link>
-      </section>
+      <section className="public-predictions-layout" aria-label="Palpites por jogador">
+        <aside className="card prediction-user-list">
+          <div className="card-head">
+            <h2>Jogadores</h2>
+            <span className="meta">{users.length} com envio</span>
+          </div>
+          {users.length === 0 ? (
+            <div className="empty-state">
+              <strong>Ninguém confirmou ainda</strong>
+              <span>Quando os jogadores confirmarem, os nomes aparecem aqui.</span>
+            </div>
+          ) : (
+            <nav aria-label="Jogadores com palpites confirmados">
+              {users.map((user) => (
+                <Link
+                  aria-current={selectedUser?.id === user.id ? "page" : undefined}
+                  href={`/predictions?usuario=${user.id}`}
+                  key={user.id}
+                >
+                  <strong>{user.displayName}</strong>
+                  <span>@{user.username}</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+        </aside>
 
-      <section className="schedule-list" aria-label="Comparação de palpites">
-        {matches.map((match) => {
-          const isRevealed = canRevealMatchPredictions(match);
-
-          return (
-            <article className="schedule-day comparison-card" key={match.id}>
-              <div className="schedule-day-head">
+        <div className="prediction-detail-list">
+          {selectedUser ? (
+            <section className="card">
+              <div className="card-head">
                 <div>
-                  <h2>
-                    Jogo {match.matchNumber} • {phaseLabels[match.phase]}
-                  </h2>
-                  <span className="meta">
-                    {formatBrazilDate(match.kickoffAt)} •{" "}
-                    {formatBrazilTime(match.kickoffAt)} •{" "}
-                    {statusLabels[match.status]}
-                  </span>
+                  <h2>{selectedUser.displayName}</h2>
+                  <span className="meta">@{selectedUser.username}</span>
                 </div>
-                <span className={isRevealed ? "chip" : "chip muted-chip"}>
-                  {isRevealed ? "Revelado" : "Oculto"}
+                <span className="meta">
+                  {predictionData.matchPredictions.length} jogos /{" "}
+                  {predictionData.placementPredictions.length} finais
                 </span>
               </div>
-              <div className="comparison-scoreboard">
-                <span>{getTeamName(match.homeTeam, match.homePlaceholder)}</span>
-                <strong>{isRevealed ? getOfficialScore(match) : "x"}</strong>
-                <span>{getTeamName(match.awayTeam, match.awayPlaceholder)}</span>
-              </div>
-              {match.matchPredictions.length === 0 ? (
-                <div className="empty-state">
-                  <strong>Nenhum palpite confirmado para este jogo</strong>
-                  <span>Assim que alguém confirmar, o envio aparece aqui.</span>
-                </div>
-              ) : (
-                <div className="comparison-grid">
-                  {match.matchPredictions.map((prediction) => (
-                    <div className="comparison-row" key={prediction.id}>
-                      <span className="name">
-                        <strong>{prediction.user.displayName}</strong>
-                        <span>{prediction.user.username}</span>
-                      </span>
-                      <span className={isRevealed ? "schedule-score" : "hidden-score"}>
-                        {formatPredictionScore(match, prediction)}
-                      </span>
-                      <span className="pts">
-                        {isRevealed && prediction.score
-                          ? `${formatPoints(prediction.score.totalPoints)} pts`
-                          : "—"}
+
+              {predictionData.placementPredictions.length > 0 ? (
+                <div className="rules-list">
+                  {predictionData.placementPredictions.map((prediction) => (
+                    <div className="rules-row compact" key={prediction.id}>
+                      <strong>{placementLabels[prediction.placement]}</strong>
+                      <span>
+                        {prediction.team.flagEmoji} {prediction.team.namePt}
                       </span>
                     </div>
                   ))}
                 </div>
+              ) : null}
+
+              {predictionData.matchPredictions.length === 0 ? (
+                <div className="empty-state">
+                  <strong>Nenhum palpite de jogo confirmado</strong>
+                  <span>Este jogador ainda não confirmou placares.</span>
+                </div>
+              ) : (
+                Array.from(groupedPredictions.entries()).map(
+                  ([phase, predictions]) => (
+                    <div className="public-prediction-section" key={phase}>
+                      <div className="schedule-day-head">
+                        <h3>{phaseLabels[phase as keyof typeof phaseLabels]}</h3>
+                        <span className="meta">{predictions.length} jogos</span>
+                      </div>
+                      <div className="schedule-day-matches">
+                        {predictions.map((prediction) => (
+                          <div
+                            className="comparison-row public-prediction-row"
+                            key={prediction.id}
+                          >
+                            <span className="name">
+                              <strong>
+                                Jogo {prediction.match.matchNumber} •{" "}
+                                {formatBrazilDate(prediction.match.kickoffAt)}
+                              </strong>
+                              <span>
+                                {formatBrazilTime(prediction.match.kickoffAt)} •{" "}
+                                {statusLabels[prediction.match.status]}
+                              </span>
+                            </span>
+                            <span className="name">
+                              <strong>
+                                {teamName(
+                                  prediction.match.homeTeam,
+                                  prediction.match.homePlaceholder,
+                                )}{" "}
+                                x{" "}
+                                {teamName(
+                                  prediction.match.awayTeam,
+                                  prediction.match.awayPlaceholder,
+                                )}
+                              </strong>
+                              <span>Oficial: {officialScore(prediction)}</span>
+                            </span>
+                            <span className="schedule-score">
+                              {prediction.homeGoals} x {prediction.awayGoals}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ),
+                )
               )}
+            </section>
+          ) : (
+            <article className="card empty-state">
+              <strong>Nenhum palpite enviado</strong>
+              <span>Esta área fica em branco até alguém confirmar palpites.</span>
             </article>
-          );
-        })}
+          )}
+        </div>
       </section>
     </main>
   );

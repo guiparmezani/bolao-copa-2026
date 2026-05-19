@@ -1,9 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateEmail } from "@/lib/auth/email-address";
+import {
+  createEmailVerificationToken,
+  getEmailVerificationExpiresAt,
+  hashEmailVerificationToken,
+} from "@/lib/auth/email-verification";
 import {
   formError,
   getRequestIp,
+  getRequestOrigin,
   isRateLimited,
   recordAuthAttempt,
   redirectTo,
@@ -13,6 +20,7 @@ import {
 import { hashPassword, validatePassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { validateUsername } from "@/lib/auth/username";
+import { sendAccountVerificationEmail } from "@/lib/email/messages";
 
 export async function POST(request: NextRequest) {
   if (!requireSameOrigin(request)) {
@@ -21,11 +29,13 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const displayName = String(formData.get("displayName") ?? "").trim();
+  const email = String(formData.get("email") ?? "");
   const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
   const passwordConfirmation = String(
     formData.get("passwordConfirmation") ?? "",
   );
+  const emailValidation = validateEmail(email);
   const usernameValidation = validateUsername(username);
   const normalized = usernameValidation.ok ? usernameValidation.normalized : null;
   const ipAddress = getRequestIp(request);
@@ -53,6 +63,11 @@ export async function POST(request: NextRequest) {
     return redirectWithError(request, "/signup", usernameValidation.error);
   }
 
+  if (!emailValidation.ok) {
+    await recordAuthAttempt("signup", "invalid", normalized, ipAddress);
+    return redirectWithError(request, "/signup", emailValidation.error);
+  }
+
   const passwordError = validatePassword(password);
 
   if (passwordError) {
@@ -66,9 +81,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const verificationToken = createEmailVerificationToken();
     const user = await prisma.user.create({
       data: {
         displayName,
+        email: emailValidation.normalized,
+        emailNormalized: emailValidation.normalized,
+        emailVerificationTokenExpiresAt: getEmailVerificationExpiresAt(),
+        emailVerificationTokenHash: hashEmailVerificationToken(verificationToken),
         username: usernameValidation.normalized,
         usernameNormalized: usernameValidation.normalized,
         passwordHash: await hashPassword(password),
@@ -76,6 +96,13 @@ export async function POST(request: NextRequest) {
     });
 
     await recordAuthAttempt("signup", "success", normalized, ipAddress);
+    await sendAccountVerificationEmail({
+      displayName: user.displayName,
+      to: emailValidation.normalized,
+      verificationUrl: `${getRequestOrigin(request)}/api/auth/verify-email?token=${verificationToken}`,
+    }).catch((emailError) => {
+      console.error("Failed to send account verification email", emailError);
+    });
     await createSession(user.id);
 
     return redirectTo(request, "/dashboard");
@@ -88,7 +115,7 @@ export async function POST(request: NextRequest) {
       return redirectWithError(
         request,
         "/signup",
-        "Esse nome de usuário já está em uso.",
+        "Esse nome de usuário ou email já está em uso.",
       );
     }
 

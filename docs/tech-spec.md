@@ -27,7 +27,10 @@ English text is acceptable only for internal implementation details that users d
 
 ## Current Repository State
 
-This project currently has only empty `design/` and `docs/` directories plus Git metadata. There is no project README yet, so this spec is the starting implementation document.
+The app is implemented as a Next.js App Router project with Prisma/PostgreSQL,
+local session auth, player/admin roles, public schedule/rules/prediction pages,
+authenticated player prediction forms, admin management pages, CSV exports, and
+OpenFootball-backed seed data.
 
 ## External Research Summary
 
@@ -270,9 +273,11 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 `/signup`
 
-- Fields: display name, unique username, password, password confirmation.
+- Fields: display name, email, unique username, password, password confirmation.
 - Username normalization: trim, lowercase, allow `a-z`, `0-9`, `_`, `.`, `-`.
 - Enforce unique username at DB level.
+- Email is normalized, stored uniquely, and receives an account-confirmation
+  link through Resend when email env vars are configured.
 
 `/login`
 
@@ -310,13 +315,15 @@ Deployment is not part of the initial implementation sprint. Build and validate 
   - third place;
   - runner-up;
   - champion.
-- These picks are submitted separately from match score predictions and lock on 2026-07-16 by default.
+- These picks are submitted separately from match score predictions and use the
+  same deadline as group-stage predictions.
 
 `/predictions`
 
-- Public comparison view.
-- Shows all users' confirmed predictions and real results.
-- To reduce copying risk, reveal predictions match-by-match as soon as each match is finished. Before a match is finished, predictions for that match remain hidden.
+- Public `Palpites` viewer.
+- Shows a left-side list of players with confirmed submissions.
+- Selecting a player shows that player's locked predictions.
+- Drafts never appear here.
 
 `/admin`
 
@@ -327,6 +334,13 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 ## Admin Page Spec
 
 Admin pages should be available only to users with `role = admin`. Every mutation must write an `audit_logs` row with actor, target entity, before/after payload, and timestamp.
+
+Admins must not be able to create player predictions. Admin sessions should
+redirect away from player prediction forms, and prediction APIs should reject
+admin users with `403`.
+
+Logged-in admins use the same left-sidebar shell pattern as players, with links
+to admin configuration and operation pages.
 
 ### `/admin`
 
@@ -477,7 +491,7 @@ Audit and operations:
 - Download operational exports:
   - users;
   - matches;
-  - predictions;
+  - predictions, including player, phase, match, score pick, placement pick, and submission status;
   - scores;
   - leaderboard.
 - Test mode actions for development/staging only:

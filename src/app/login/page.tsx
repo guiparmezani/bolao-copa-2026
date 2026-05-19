@@ -3,17 +3,17 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 
 type LoginPageProps = {
-  searchParams: Promise<{ erro?: string }>;
+  searchParams: Promise<{ erro?: string; mensagem?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
 
   if (user) {
-    redirect("/dashboard");
+    redirect(user.role === "admin" ? "/admin" : "/dashboard");
   }
 
-  const { erro } = await searchParams;
+  const { erro, mensagem } = await searchParams;
 
   return (
     <main className="auth-page">
@@ -26,13 +26,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
         <form className="form" action="/api/auth/login" method="post">
           {erro ? <p className="form-error">{erro}</p> : null}
+          {mensagem ? <p className="prediction-message">{mensagem}</p> : null}
           <label>
             <span>Nome de usuário</span>
             <input
               autoComplete="username"
               inputMode="text"
               name="username"
-              pattern="[a-zA-Z0-9_.-]+"
+              pattern={"[a-zA-Z0-9_.\\-]+"}
               required
             />
           </label>

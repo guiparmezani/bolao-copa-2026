@@ -1,8 +1,8 @@
 # Bolao dos Facabundos 2026
 
-Web app for a Brazilian World Cup 2026 bolao. Players create accounts, submit
-locked score predictions, pick champion/runner-up/third place, compare revealed
-predictions after each match finishes, and follow the leaderboard.
+Web app for a Brazilian World Cup 2026 bolao. Players create accounts, confirm
+their email, submit locked score predictions, pick champion/runner-up/third
+place, browse submitted predictions, and follow the leaderboard.
 
 The app is local-first right now. Production deployment is planned for
 `bolao-facabundos-2026.parmezani.com`, behind Caddy on the `parmavps` VPS, but
@@ -10,15 +10,18 @@ the repo can be developed and validated fully on a local machine.
 
 ## What Is Implemented
 
-- Public homepage, schedule, rules, and prediction comparison pages.
-- Signup/login/logout with local session cookies and Argon2id password hashes.
-- Authenticated dashboard and prediction forms.
+- Public homepage, schedule, rules, and submitted-predictions pages. Homepage
+  cards render from database data and show empty states instead of sample rows.
+- Signup/login/logout with local session cookies, Argon2id password hashes, and
+  optional Resend-backed account confirmation email.
+- Authenticated player dashboard and prediction forms in a logged-in sidebar.
 - Group-stage predictions with confirmation and immutability.
 - Knockout predictions that stay locked until Round-of-32 fixtures are real teams.
-- Champion, runner-up, and third-place picks with separate deadline.
+- Champion, runner-up, and third-place picks using the same deadline as group predictions.
 - Scoring engine, placement bonuses, and leaderboard recomputation.
 - Static tournament seed and worker sync based on public OpenFootball data.
-- Admin area for health, matches, users, submissions, scoring, settings, audit, and CSV exports.
+- Admin area for health, matches, users, submissions, scoring, settings, audit,
+  CSV exports, and a full predictions export.
 - Production Dockerfile and Compose scaffold for later deployment handoff.
 
 ## Tech Stack
@@ -90,6 +93,17 @@ ADMIN_USERNAME="admin"
 ADMIN_DISPLAY_NAME="Admin"
 ADMIN_PASSWORD="troque-esta-senha-local"
 ```
+
+Optional transactional email through Resend:
+
+```env
+APP_URL="http://localhost:3000"
+EMAIL_FROM="Bolão dos Facabundos <noreply@example.com>"
+RESEND_API_KEY=""
+```
+
+If `RESEND_API_KEY` or `EMAIL_FROM` is empty, email sends are skipped so local
+development keeps working.
 
 Production/prod-like Compose also expects:
 
@@ -176,7 +190,7 @@ Public:
 - `/`
 - `/matches`
 - `/rules`
-- `/predictions`
+- `/predictions` public viewer of confirmed submitted predictions by player
 - `/login`
 - `/signup`
 
@@ -203,14 +217,14 @@ Default deadlines are stored in app settings:
 
 - group predictions: `2026-06-11 23:59 America/Sao_Paulo`
 - knockout predictions: `2026-06-27 23:59 America/Sao_Paulo`
-- placement picks: `2026-07-16 23:59 America/Sao_Paulo`
+- champion/runner-up/third-place picks: same as group predictions
 
 Users can edit drafts until they confirm or the deadline closes. Confirmed
 prediction rows are protected by database triggers. Admin unlocks use an audited
 override path and should be treated as exceptional support operations.
 
-Public comparison reveals each match's predictions only after that match is
-finished and has an official score.
+The public `Palpites` page lists players with confirmed submissions and shows
+their locked predictions. Admin users cannot create prediction submissions.
 
 ## Useful Commands
 
@@ -332,6 +346,8 @@ WORKER_INTERVAL_SECONDS=300
 ADMIN_USERNAME=admin
 ADMIN_DISPLAY_NAME=Admin
 ADMIN_PASSWORD=troque-esta-senha-admin
+EMAIL_FROM="Bolão dos Facabundos <noreply@bolao-facabundos-2026.parmezani.com>"
+RESEND_API_KEY=re_xxx
 ```
 
 Build and start:

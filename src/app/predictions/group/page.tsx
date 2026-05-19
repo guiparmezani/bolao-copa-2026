@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/session";
+import { PlayerAppFrame } from "@/components/app-frame";
+import { requirePlayerPage } from "@/lib/auth/player";
 import { getGroupPredictionState } from "@/lib/predictions/group";
 import {
   formatBrazilDate,
@@ -30,11 +30,7 @@ function formatDeadline(value: Date) {
 }
 
 export default async function GroupPredictionsPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const user = await requirePlayerPage();
 
   const state = await getGroupPredictionState(user.id);
   const matches = state.matches.map((match) => ({
@@ -60,14 +56,16 @@ export default async function GroupPredictionsPage() {
   );
 
   return (
-    <main className="matches-page">
-      <GroupPredictionForm
-        deadlineLabel={formatDeadline(state.deadline)}
-        initialPredictions={initialPredictions}
-        isConfirmed={state.isConfirmed}
-        isOpen={state.window.isOpen}
-        matches={matches}
-      />
-    </main>
+    <PlayerAppFrame user={user}>
+      <main className="matches-page">
+        <GroupPredictionForm
+          deadlineLabel={formatDeadline(state.deadline)}
+          initialPredictions={initialPredictions}
+          isConfirmed={state.isConfirmed}
+          isOpen={state.window.isOpen}
+          matches={matches}
+        />
+      </main>
+    </PlayerAppFrame>
   );
 }

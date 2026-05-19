@@ -4,6 +4,7 @@ import type { UserRole } from "@prisma/client";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
+import { validateEmail } from "@/lib/auth/email-address";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizeUsername } from "@/lib/auth/username";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +47,9 @@ export async function POST(request: NextRequest) {
   const data = await readRequestData(request);
   const username = asString(data.username);
   const displayName = asString(data.displayName);
+  const email = asString(data.email);
   const password = asString(data.password);
+  const emailValidation = email ? validateEmail(email) : null;
 
   if (!username || !displayName || password.length < 8) {
     return Response.json(
@@ -55,11 +58,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (emailValidation && !emailValidation.ok) {
+    return Response.json({ error: emailValidation.error }, { status: 400 });
+  }
+
+  const normalizedEmail = emailValidation?.ok ? emailValidation.normalized : null;
   const created = await prisma.user.create({
     data: {
       username,
       usernameNormalized: normalizeUsername(username),
       displayName,
+      email: normalizedEmail,
+      emailNormalized: normalizedEmail,
+      emailVerifiedAt: normalizedEmail ? new Date() : null,
       passwordHash: await hashPassword(password),
       role: parseRole(data.role),
     },

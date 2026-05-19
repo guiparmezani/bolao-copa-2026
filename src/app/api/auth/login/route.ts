@@ -67,5 +67,5 @@ export async function POST(request: NextRequest) {
   );
   await createSession(user.id);
 
-  return redirectTo(request, "/dashboard");
+  return redirectTo(request, user.role === "admin" ? "/admin" : "/dashboard");
 }

@@ -143,6 +143,7 @@ export default async function AdminPage() {
           <form action="/api/admin/matches/bulk-publish" method="post">
             <button className="button" type="submit">Publicar jogos importados</button>
           </form>
+          <Link className="button" href="/api/admin/export/predictions">Exportar palpites</Link>
           <Link className="button" href="/api/admin/export/leaderboard">Exportar ranking</Link>
         </div>
       </section>

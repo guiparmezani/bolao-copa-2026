@@ -16,7 +16,7 @@ describe("group prediction deadlines", () => {
   it("uses the default Sao Paulo close time as UTC", () => {
     expect(defaultGroupSubmissionDeadlineIso).toBe("2026-06-12T02:59:00.000Z");
     expect(defaultKnockoutSubmissionDeadlineIso).toBe("2026-06-28T02:59:00.000Z");
-    expect(defaultPlacementSubmissionDeadlineIso).toBe("2026-07-17T02:59:00.000Z");
+    expect(defaultPlacementSubmissionDeadlineIso).toBe(defaultGroupSubmissionDeadlineIso);
   });
 
   it("keeps submissions open until the exact deadline instant", () => {
@@ -108,14 +108,14 @@ describe("group prediction deadlines", () => {
 
     expect(
       getPlacementSubmissionWindow(
-        new Date("2026-07-17T02:59:00.000Z"),
+        new Date("2026-06-12T02:59:00.000Z"),
         deadline,
         true,
       ).isOpen,
     ).toBe(true);
     expect(
       getPlacementSubmissionWindow(
-        new Date("2026-07-17T02:59:01.000Z"),
+        new Date("2026-06-12T02:59:01.000Z"),
         deadline,
         true,
       ).isOpen,

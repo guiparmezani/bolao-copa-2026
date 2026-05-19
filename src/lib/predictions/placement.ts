@@ -3,12 +3,10 @@ import "server-only";
 import { Prisma, type PlacementPredictionKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
-  getDefaultPlacementSubmissionDeadline,
   getPlacementSubmissionWindow,
   isJsonEnabled,
-  parseSettingDate,
 } from "@/lib/predictions/deadlines";
-import { PredictionRuleError } from "@/lib/predictions/group";
+import { getGroupPredictionDeadline, PredictionRuleError } from "@/lib/predictions/group";
 
 export type PlacementInput = {
   placement: PlacementPredictionKind;
@@ -24,11 +22,7 @@ export const placementLabels: Record<PlacementPredictionKind, string> = {
 const placementKinds: PlacementPredictionKind[] = ["champion", "runner_up", "third_place"];
 
 export async function getPlacementPredictionDeadline() {
-  const setting = await prisma.appSetting.findUnique({
-    where: { key: "placement_submission_deadline" },
-  });
-
-  return parseSettingDate(setting?.value) ?? getDefaultPlacementSubmissionDeadline();
+  return getGroupPredictionDeadline();
 }
 
 async function getPlacementEnabled() {

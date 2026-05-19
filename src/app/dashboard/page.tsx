@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { PlayerAppFrame } from "@/components/app-frame";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getKnockoutPredictionState } from "@/lib/predictions/knockout";
 import {
@@ -32,6 +33,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  if (user.role === "admin") {
+    redirect("/admin");
+  }
+
   const groupPredictions = await getGroupPredictionState(user.id);
   const knockoutPredictions = await getKnockoutPredictionState(user.id);
   const placementPredictions = await getPlacementPredictionState(user.id);
@@ -48,7 +53,8 @@ export default async function DashboardPage() {
     : [];
 
   return (
-    <main className="dashboard-page">
+    <PlayerAppFrame user={user}>
+      <main className="dashboard-page">
       <section className="dashboard-header">
         <div>
           <span className="chip">Área protegida</span>
@@ -58,11 +64,6 @@ export default async function DashboardPage() {
             confirmados.
           </p>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button className="button" type="submit">
-            Sair
-          </button>
-        </form>
       </section>
 
       <section className="layout dashboard-grid">
@@ -190,6 +191,7 @@ export default async function DashboardPage() {
           </div>
         </article>
       </section>
-    </main>
+      </main>
+    </PlayerAppFrame>
   );
 }

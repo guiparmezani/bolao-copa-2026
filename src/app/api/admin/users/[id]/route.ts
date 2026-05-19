@@ -4,6 +4,7 @@ import type { UserRole, UserStatus } from "@prisma/client";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
+import { validateEmail } from "@/lib/auth/email-address";
 import { normalizeUsername } from "@/lib/auth/username";
 import { prisma } from "@/lib/prisma";
 
@@ -48,13 +49,24 @@ async function updateUser(request: NextRequest, context: RouteContext) {
 
   const username = asString(data.username);
   const displayName = asString(data.displayName);
+  const email = asString(data.email);
+  const emailValidation = email ? validateEmail(email) : null;
   const status = parseStatus(data.status);
+
+  if (emailValidation && !emailValidation.ok) {
+    return Response.json({ error: emailValidation.error }, { status: 400 });
+  }
+
+  const normalizedEmail = emailValidation?.ok ? emailValidation.normalized : null;
   const after = await prisma.user.update({
     where: { id },
     data: {
       username: username || before.username,
       usernameNormalized: username ? normalizeUsername(username) : before.usernameNormalized,
       displayName: displayName || before.displayName,
+      email: normalizedEmail ?? before.email,
+      emailNormalized: normalizedEmail ?? before.emailNormalized,
+      emailVerifiedAt: normalizedEmail ? new Date() : before.emailVerifiedAt,
       role: parseRole(data.role),
       status,
       deletedAt: status === "deleted" ? new Date() : null,
