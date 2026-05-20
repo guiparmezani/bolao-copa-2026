@@ -22,8 +22,18 @@ function formatDeadline(value: Date) {
   }).format(value);
 }
 
-function getTeamName(team: { flagEmoji: string; namePt: string } | null, placeholder: string | null) {
-  return team ? `${team.flagEmoji} ${team.namePt}` : placeholder ?? "A definir";
+function getTeamName(
+  team: { flagEmoji: string; namePt: string } | null,
+  placeholder: string | null,
+  flagPosition: "before" | "after",
+) {
+  if (!team) {
+    return placeholder ?? "A definir";
+  }
+
+  return flagPosition === "after"
+    ? `${team.namePt} ${team.flagEmoji}`
+    : `${team.flagEmoji} ${team.namePt}`;
 }
 
 export default async function DashboardPage() {
@@ -113,9 +123,9 @@ export default async function DashboardPage() {
                     {formatBrazilTime(match.kickoffAt)} • {phaseLabels[match.phase]}
                   </span>
                   <strong>
-                    {getTeamName(match.homeTeam, match.homePlaceholder)}{" "}
+                    {getTeamName(match.homeTeam, match.homePlaceholder, "after")}{" "}
                     {prediction?.homeGoals} x {prediction?.awayGoals}{" "}
-                    {getTeamName(match.awayTeam, match.awayPlaceholder)}
+                    {getTeamName(match.awayTeam, match.awayPlaceholder, "before")}
                   </strong>
                 </div>
               ))}

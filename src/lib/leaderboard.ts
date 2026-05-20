@@ -73,6 +73,9 @@ async function getPlacementPointsByUser(client: LeaderboardClient) {
     client.placementPrediction.findMany({
       where: {
         confirmedAt: { not: null },
+        submission: {
+          status: "confirmed",
+        },
       },
     }),
   ]);
@@ -125,6 +128,12 @@ function isSameRank(a: LeaderboardRow, b: LeaderboardRow) {
 export async function recomputeLeaderboard(client: LeaderboardClient = prisma) {
   const rulesByPhase = await getActiveScoringRules(client);
   const predictions = await client.matchPrediction.findMany({
+    where: {
+      confirmedAt: { not: null },
+      submission: {
+        status: "confirmed",
+      },
+    },
     include: {
       match: true,
       submission: true,

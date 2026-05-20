@@ -26,8 +26,7 @@ export default async function AdminUsersPage() {
         <div className="card-head"><h2>Novo usuário</h2><span className="meta">Senha temporária</span></div>
         <form className="admin-form-grid" action="/api/admin/users" method="post">
           <label><span>Nome</span><input name="displayName" required /></label>
-          <label><span>Email</span><input name="email" type="email" /></label>
-          <label><span>Usuário</span><input name="username" required /></label>
+          <label><span>Email</span><input name="email" required type="email" /></label>
           <label><span>Senha temporária</span><input name="password" minLength={10} required /></label>
           <label><span>Papel</span><select name="role" defaultValue="player"><option value="player">Jogador</option><option value="admin">Admin</option></select></label>
           <button className="button primary" type="submit">Criar</button>
@@ -38,12 +37,11 @@ export default async function AdminUsersPage() {
           <article className="card" key={user.id}>
             <div className="card-head">
               <h2>{user.displayName}</h2>
-              <span className="meta">@{user.username} • {user.status}</span>
+              <span className="meta">{user.email ?? "Email não definido"} • {user.status}</span>
             </div>
             <form className="admin-form-grid" action={`/api/admin/users/${user.id}`} method="post">
               <label><span>Nome</span><input name="displayName" defaultValue={user.displayName} /></label>
-              <label><span>Email</span><input name="email" type="email" defaultValue={user.email ?? ""} /></label>
-              <label><span>Usuário</span><input name="username" defaultValue={user.username} /></label>
+              <label><span>Email</span><input name="email" required type="email" defaultValue={user.email ?? ""} /></label>
               <label><span>Papel</span><select name="role" defaultValue={user.role}><option value="player">Jogador</option><option value="admin">Admin</option></select></label>
               <label><span>Status</span><select name="status" defaultValue={user.status}><option value="active">Ativo</option><option value="disabled">Desativado</option><option value="deleted">Removido</option></select></label>
               <button className="button" type="submit">Salvar</button>

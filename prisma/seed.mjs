@@ -107,8 +107,16 @@ const monthIndex = {
   July: 6,
 };
 
-function normalizeUsername(username) {
-  return username.trim().toLowerCase();
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function fallbackAdminEmail(username) {
+  if (!username) {
+    return null;
+  }
+
+  return username.includes("@") ? username : `${username}@local.test`;
 }
 
 function slug(value) {
@@ -449,48 +457,77 @@ async function seedTournamentData() {
 }
 
 async function seedAdminUser() {
-  const username = process.env.ADMIN_USERNAME;
+  const adminEmail = process.env.ADMIN_EMAIL ?? fallbackAdminEmail(process.env.ADMIN_USERNAME);
+  const legacyUsername = process.env.ADMIN_USERNAME
+    ? normalizeEmail(process.env.ADMIN_USERNAME)
+    : null;
   const password = process.env.ADMIN_PASSWORD;
   const displayName = process.env.ADMIN_DISPLAY_NAME ?? "Admin";
 
-  if (!username || !password) {
+  if (!adminEmail || !password) {
     console.log(
-      "Admin seed skipped. Set ADMIN_USERNAME and ADMIN_PASSWORD to create or update an admin user.",
+      "Admin seed skipped. Set ADMIN_EMAIL and ADMIN_PASSWORD to create or update an admin user.",
     );
     return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+    throw new Error("ADMIN_EMAIL must be a valid email address.");
   }
 
   if (password.length < 10) {
     throw new Error("ADMIN_PASSWORD must have at least 10 characters.");
   }
 
-  const usernameNormalized = normalizeUsername(username);
+  const emailNormalized = normalizeEmail(adminEmail);
   const passwordHash = await argon2.hash(password, {
     type: argon2.argon2id,
     memoryCost: 19456,
     timeCost: 2,
     parallelism: 1,
   });
-
-  await prisma.user.upsert({
-    where: { usernameNormalized },
-    update: {
-      displayName,
-      passwordHash,
-      role: "admin",
-      status: "active",
-      deletedAt: null,
-    },
-    create: {
-      username: usernameNormalized,
-      usernameNormalized,
-      displayName,
-      passwordHash,
-      role: "admin",
+  const existingAdmin = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { emailNormalized },
+        { usernameNormalized: emailNormalized },
+        ...(legacyUsername ? [{ usernameNormalized: legacyUsername }] : []),
+      ],
     },
   });
 
-  console.log(`Admin user ready: ${usernameNormalized}`);
+  if (existingAdmin) {
+    await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: {
+        username: emailNormalized,
+        usernameNormalized: emailNormalized,
+        email: emailNormalized,
+        emailNormalized,
+        emailVerifiedAt: existingAdmin.emailVerifiedAt ?? new Date(),
+        displayName,
+        passwordHash,
+        role: "admin",
+        status: "active",
+        deletedAt: null,
+      },
+    });
+  } else {
+    await prisma.user.create({
+      data: {
+        username: emailNormalized,
+        usernameNormalized: emailNormalized,
+        email: emailNormalized,
+        emailNormalized,
+        emailVerifiedAt: new Date(),
+        displayName,
+        passwordHash,
+        role: "admin",
+      },
+    });
+  }
+
+  console.log(`Admin user ready: ${emailNormalized}`);
 }
 
 async function seedScoringDefaults() {

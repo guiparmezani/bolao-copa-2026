@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminNotice } from "@/components/admin-notice";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
@@ -12,8 +13,15 @@ const phaseGroupLabels = {
   placement: "Colocações",
 } as const;
 
-export default async function AdminSubmissionsPage() {
+type AdminSubmissionsPageProps = {
+  searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
+};
+
+export default async function AdminSubmissionsPage({
+  searchParams,
+}: AdminSubmissionsPageProps) {
   await requireAdminPage();
+  const { aviso, erro, mensagem } = (await searchParams) ?? {};
   const submissions = await prisma.predictionSubmission.findMany({
     include: {
       user: true,
@@ -30,6 +38,7 @@ export default async function AdminSubmissionsPage() {
         <div><span className="chip">Admin</span><h1>Envios</h1><p>Status de envio por jogador e suporte auditado.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
+      <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
       <section className="schedule-list">
         {submissions.map((submission) => (
           <article className="card" key={submission.id}>
@@ -44,7 +53,18 @@ export default async function AdminSubmissionsPage() {
             </div>
             {submission.status === "confirmed" ? (
               <form className="admin-confirm-form" action={`/api/admin/submissions/${submission.id}`} method="post">
-                <label><span>Desbloqueio auditado</span><input name="confirmation" placeholder="DESBLOQUEAR" /></label>
+                <label>
+                  <span>Desbloqueio auditado</span>
+                  <input
+                    autoComplete="off"
+                    name="confirmation"
+                    pattern="DESBLOQUEAR"
+                    placeholder="DESBLOQUEAR"
+                    required
+                    title="Digite DESBLOQUEAR em letras maiúsculas."
+                  />
+                  <small>Digite DESBLOQUEAR para liberar este envio.</small>
+                </label>
                 <button className="button" type="submit">Desbloquear envio</button>
               </form>
             ) : null}

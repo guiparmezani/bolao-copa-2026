@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import type { MatchPhase, PublicationStatus } from "@prisma/client";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import {
+  redirectBackWithMessage,
+  requireAdminApi,
+  shouldRedirectBack,
+} from "@/lib/admin/auth";
 import { asDate, asNullableString, asNumber, asString, readRequestData } from "@/lib/admin/forms";
 import { prisma } from "@/lib/prisma";
 
@@ -50,6 +54,15 @@ export async function POST(request: NextRequest) {
   const kickoffAt = asDate(data.kickoffAt);
 
   if (!matchNumber || !kickoffAt) {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(
+        request,
+        "/admin/matches",
+        "erro",
+        "Informe número do jogo e data de início.",
+      );
+    }
+
     return Response.json({ error: "Informe número do jogo e data de início." }, { status: 400 });
   }
 
@@ -80,7 +93,12 @@ export async function POST(request: NextRequest) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(
+      request,
+      "/admin/matches",
+      "mensagem",
+      `Jogo ${created.matchNumber} criado.`,
+    );
   }
 
   return Response.json({ ok: true, match: created });

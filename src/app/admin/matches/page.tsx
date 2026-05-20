@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminNotice } from "@/components/admin-notice";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
@@ -11,8 +12,13 @@ function scoreValue(value: number | null) {
   return value === null ? "" : String(value);
 }
 
-export default async function AdminMatchesPage() {
+type AdminMatchesPageProps = {
+  searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
+};
+
+export default async function AdminMatchesPage({ searchParams }: AdminMatchesPageProps) {
   await requireAdminPage();
+  const { aviso, erro, mensagem } = (await searchParams) ?? {};
   const matches = await prisma.match.findMany({
     include: {
       awayTeam: true,
@@ -31,6 +37,7 @@ export default async function AdminMatchesPage() {
         </div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
+      <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
 
       <section className="card admin-actions">
         <div className="card-head">
@@ -93,15 +100,17 @@ export default async function AdminMatchesPage() {
               <label><span>Visitante</span><input name="awayPlaceholder" defaultValue={match.awayTeam?.namePt ?? match.awayPlaceholder ?? ""} /></label>
               <label><span>Gols mandante</span><input name="homeGoals" type="number" min="0" defaultValue={scoreValue(match.homeGoals)} /></label>
               <label><span>Gols visitante</span><input name="awayGoals" type="number" min="0" defaultValue={scoreValue(match.awayGoals)} /></label>
+              <span className="meta">O ranking só pontua jogos com status Encerrado.</span>
               <button className="button" type="submit">Salvar metadados</button>
             </form>
             <form className="admin-confirm-form" action={`/api/admin/matches/${match.id}/override-result`} method="post">
-              <input name="homeGoals" type="hidden" value={scoreValue(match.homeGoals)} />
-              <input name="awayGoals" type="hidden" value={scoreValue(match.awayGoals)} />
+              <label><span>Gols mandante</span><input name="homeGoals" type="number" min="0" defaultValue={scoreValue(match.homeGoals)} /></label>
+              <label><span>Gols visitante</span><input name="awayGoals" type="number" min="0" defaultValue={scoreValue(match.awayGoals)} /></label>
               <label>
                 <span>Override auditado</span>
                 <input name="confirmation" placeholder="CONFIRMAR" />
               </label>
+              <small>Digite CONFIRMAR para marcar o jogo como Encerrado e recalcular o ranking.</small>
               <button className="button" type="submit">Forçar resultado e recalcular</button>
               <Link className="button" href={`/api/admin/export/matches`}>Exportar jogos</Link>
             </form>

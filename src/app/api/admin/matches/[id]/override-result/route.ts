@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import {
+  redirectBackWithMessage,
+  requireAdminApi,
+  shouldRedirectBack,
+} from "@/lib/admin/auth";
 import { asNumber, asString, readRequestData } from "@/lib/admin/forms";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 import { prisma } from "@/lib/prisma";
@@ -22,10 +26,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const before = await prisma.match.findUnique({ where: { id } });
 
   if (!before) {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(request, "/admin/matches", "erro", "Jogo não encontrado.");
+    }
+
     return Response.json({ error: "Jogo não encontrado." }, { status: 404 });
   }
 
   if (asString(data.confirmation) !== "CONFIRMAR") {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(
+        request,
+        "/admin/matches",
+        "erro",
+        "Digite CONFIRMAR para sobrescrever resultado.",
+      );
+    }
+
     return Response.json({ error: "Digite CONFIRMAR para sobrescrever resultado." }, { status: 400 });
   }
 
@@ -33,6 +50,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const awayGoals = asNumber(data.awayGoals);
 
   if (homeGoals === null || awayGoals === null) {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(
+        request,
+        "/admin/matches",
+        "erro",
+        "Informe os gols oficiais do bolão.",
+      );
+    }
+
     return Response.json({ error: "Informe os gols oficiais do bolão." }, { status: 400 });
   }
 
@@ -64,7 +90,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(
+      request,
+      "/admin/matches",
+      "mensagem",
+      `Resultado do jogo ${before.matchNumber} salvo e ranking recalculado para ${leaderboard.leaderboardRows} jogador(es).`,
+    );
   }
 
   return Response.json({ ok: true, match: after, leaderboard });

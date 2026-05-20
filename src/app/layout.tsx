@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import Script from "next/script";
 import { SiteNav } from "@/components/site-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import "./globals.css";
@@ -52,7 +51,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  colorScheme: "dark light",
+  colorScheme: "dark",
 };
 
 export default async function RootLayout({
@@ -65,26 +64,14 @@ export default async function RootLayout({
   const accountLabel = user ? (user.role === "admin" ? "Admin" : "Painel") : "Entrar";
 
   return (
-    <html data-scroll-behavior="smooth" lang="pt-BR" suppressHydrationWarning>
+    <html data-scroll-behavior="smooth" data-theme="dark" lang="pt-BR" suppressHydrationWarning>
       <body>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`
-            (() => {
-              const storageKey = "bolao-tema";
-              const storedTheme = window.localStorage.getItem(storageKey);
-              const theme = storedTheme === "dark" || storedTheme === "light"
-                ? storedTheme
-                : window.matchMedia("(prefers-color-scheme: light)").matches
-                  ? "light"
-                  : "dark";
-              document.documentElement.dataset.theme = theme;
-            })();
-          `}
-        </Script>
         <div className="shell">
-          <header>
-            <SiteNav accountHref={accountHref} accountLabel={accountLabel} />
-          </header>
+          <SiteNav
+            accountHref={accountHref}
+            accountLabel={accountLabel}
+            isAuthenticated={Boolean(user)}
+          />
           {children}
           <footer className="site-footer">
             <div className="footer-panel">

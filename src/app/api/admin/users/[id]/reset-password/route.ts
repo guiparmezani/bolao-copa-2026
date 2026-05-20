@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     action: "user.reset_password",
     targetEntity: "user",
     targetId: id,
-    before: { username: before.username },
+    before: { email: before.email },
     after: { sessionsRevoked: true },
   });
 

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       actor: {
         select: {
           displayName: true,
-          username: true,
+          email: true,
         },
       },
     },

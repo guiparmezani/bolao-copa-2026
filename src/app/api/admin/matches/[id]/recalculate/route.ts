@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import { redirectBackWithMessage, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 
 type RouteContext = {
@@ -26,7 +26,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(
+      request,
+      "/admin/matches",
+      "mensagem",
+      `Ranking recalculado para ${result.leaderboardRows} jogador(es).`,
+    );
   }
 
   return Response.json({ ok: true, result });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminNotice } from "@/components/admin-notice";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
@@ -63,8 +64,13 @@ async function getAdminHealth() {
   };
 }
 
-export default async function AdminPage() {
+type AdminPageProps = {
+  searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
+};
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const user = await requireAdminPage();
+  const { aviso, erro, mensagem } = (await searchParams) ?? {};
   const health = await getAdminHealth();
 
   return (
@@ -87,6 +93,7 @@ export default async function AdminPage() {
           <Link className="button" href="/admin/audit">Auditoria</Link>
         </nav>
       </section>
+      <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
 
       <section className="layout">
         <article className="card">

@@ -28,13 +28,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {erro ? <p className="form-error">{erro}</p> : null}
           {mensagem ? <p className="prediction-message">{mensagem}</p> : null}
           <label>
-            <span>Nome de usuário</span>
+            <span>Email</span>
             <input
-              autoComplete="username"
-              inputMode="text"
-              name="username"
-              pattern={"[a-zA-Z0-9_.\\-]+"}
+              autoComplete="email"
+              name="email"
               required
+              type="email"
             />
           </label>
           <label>

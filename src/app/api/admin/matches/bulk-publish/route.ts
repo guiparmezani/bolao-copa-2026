@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import { redirectBackWithMessage, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,12 @@ export async function POST(request: NextRequest) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(
+      request,
+      "/admin/matches",
+      "mensagem",
+      `${result.count} jogo(s) importado(s) publicado(s).`,
+    );
   }
 
   return Response.json({ ok: true, result });

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       user: {
         select: {
           displayName: true,
-          username: true,
+          email: true,
         },
       },
       _count: {

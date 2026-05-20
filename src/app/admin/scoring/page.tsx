@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminNotice } from "@/components/admin-notice";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminPoints } from "@/lib/admin/format";
 import { getActiveScoringRuleConfigs, getPlacementBonuses } from "@/lib/rules";
@@ -7,8 +8,13 @@ import { phaseLabels } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminScoringPage() {
+type AdminScoringPageProps = {
+  searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
+};
+
+export default async function AdminScoringPage({ searchParams }: AdminScoringPageProps) {
   await requireAdminPage();
+  const { aviso, erro, mensagem } = (await searchParams) ?? {};
   const [rules, placementBonuses] = await Promise.all([
     getActiveScoringRuleConfigs(),
     getPlacementBonuses(),
@@ -20,6 +26,7 @@ export default async function AdminScoringPage() {
         <div><span className="chip">Admin</span><h1>Pontuação</h1><p>Alterações criam novas versões de regra e devem ser seguidas de recálculo.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
+      <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
       <section className="schedule-list">
         {rules.map((rule) => (
           <article className="card" key={rule.phase}>

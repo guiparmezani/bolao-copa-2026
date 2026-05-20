@@ -44,8 +44,24 @@ async function getFeaturedLiveMatch() {
 
 type HomeMatch = Awaited<ReturnType<typeof getNextMatches>>[number];
 
-function getTeamName(team: HomeMatch["homeTeam"], placeholder: string | null) {
-  return team ? `${team.flagEmoji} ${team.namePt}` : placeholder ?? "A definir";
+function getTeamLabel(team: HomeMatch["homeTeam"], placeholder: string | null) {
+  return team
+    ? { flag: team.flagEmoji, name: team.namePt }
+    : { flag: "", name: placeholder ?? "A definir" };
+}
+
+function getTeamName(
+  team: HomeMatch["homeTeam"],
+  placeholder: string | null,
+  flagPosition: "before" | "after",
+) {
+  if (!team) {
+    return placeholder ?? "A definir";
+  }
+
+  return flagPosition === "after"
+    ? `${team.namePt} ${team.flagEmoji}`
+    : `${team.flagEmoji} ${team.namePt}`;
 }
 
 function getScore(match: Pick<HomeMatch, "homeGoals" | "awayGoals">) {
@@ -136,7 +152,7 @@ export default async function Home() {
             <h1>Bolão dos Facabundos Copa 2026</h1>
             <p>
               Ranking, calendário e regras em uma experiência direta para
-              acompanhar o bolão sem expor palpites que ainda não fecharam.
+              acompanhar o bolão e tirar uma grana. Lemos queima a rosca.
             </p>
             <div className="chips">
               <Link className="button primary" href="/signup">
@@ -158,13 +174,30 @@ export default async function Home() {
             {featuredMatch ? (
               <div className="feature-match">
                 <div className="teams">
-                  <span className="team">
-                    {getTeamName(featuredMatch.homeTeam, featuredMatch.homePlaceholder)}
-                  </span>
-                  <span className="score">{getScore(featuredMatch)}</span>
-                  <span className="team">
-                    {getTeamName(featuredMatch.awayTeam, featuredMatch.awayPlaceholder)}
-                  </span>
+                  {(() => {
+                    const home = getTeamLabel(
+                      featuredMatch.homeTeam,
+                      featuredMatch.homePlaceholder,
+                    );
+                    const away = getTeamLabel(
+                      featuredMatch.awayTeam,
+                      featuredMatch.awayPlaceholder,
+                    );
+
+                    return (
+                      <>
+                        <span className="team">
+                          <strong>{home.name}</strong>
+                          {home.flag ? <span aria-hidden="true">{home.flag}</span> : null}
+                        </span>
+                        <span className="score">{getScore(featuredMatch)}</span>
+                        <span className="team">
+                          {away.flag ? <span aria-hidden="true">{away.flag}</span> : null}
+                          <strong>{away.name}</strong>
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
                 <span className="meta">
                   {phaseLabels[featuredMatch.phase]} •{" "}
@@ -245,8 +278,8 @@ export default async function Home() {
                       <span>{phaseLabels[match.phase]}</span>
                     </div>
                     <strong>
-                      {getTeamName(match.homeTeam, match.homePlaceholder)} x{" "}
-                      {getTeamName(match.awayTeam, match.awayPlaceholder)}
+                      {getTeamName(match.homeTeam, match.homePlaceholder, "after")} x{" "}
+                      {getTeamName(match.awayTeam, match.awayPlaceholder, "before")}
                     </strong>
                   </div>
                 ))

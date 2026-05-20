@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import { redirectBackWithMessage, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request);
+    return redirectBackWithMessage(
+      request,
+      "/admin",
+      "mensagem",
+      `Ranking recalculado para ${result.leaderboardRows} jogador(es).`,
+    );
   }
 
   return Response.json({ ok: true, result });

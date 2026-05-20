@@ -8,12 +8,13 @@ import {
   redirectWithError,
   requireSameOrigin,
 } from "@/lib/auth/http";
+import { validateEmail } from "@/lib/auth/email-address";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
-import { validateUsername } from "@/lib/auth/username";
+import { normalizeUsername } from "@/lib/auth/username";
 import { prisma } from "@/lib/prisma";
 
-const INVALID_LOGIN = "Usuário ou senha inválidos.";
+const INVALID_LOGIN = "Email ou senha inválidos.";
 
 export async function POST(request: NextRequest) {
   if (!requireSameOrigin(request)) {
@@ -21,10 +22,13 @@ export async function POST(request: NextRequest) {
   }
 
   const formData = await request.formData();
-  const username = String(formData.get("username") ?? "");
+  const identifier = String(formData.get("email") ?? formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
-  const usernameValidation = validateUsername(username);
-  const normalized = usernameValidation.ok ? usernameValidation.normalized : null;
+  const emailValidation = validateEmail(identifier);
+  const legacyUsername = normalizeUsername(identifier);
+  const normalized = emailValidation.ok
+    ? emailValidation.normalized
+    : legacyUsername || null;
   const ipAddress = getRequestIp(request);
 
   if (await isRateLimited("login", normalized, ipAddress)) {
@@ -36,14 +40,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!usernameValidation.ok || !password) {
+  if (!identifier || !password) {
     await recordAuthAttempt("login", "invalid", normalized, ipAddress);
     return redirectWithError(request, "/login", INVALID_LOGIN);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { usernameNormalized: usernameValidation.normalized },
-  });
+  const user = emailValidation.ok
+    ? await prisma.user.findUnique({
+        where: { emailNormalized: emailValidation.normalized },
+      })
+    : await prisma.user.findUnique({
+        where: { usernameNormalized: legacyUsername },
+      });
 
   if (
     !user ||
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
     await recordAuthAttempt(
       "login",
       "invalid",
-      usernameValidation.normalized,
+      normalized,
       ipAddress,
     );
     return redirectWithError(request, "/login", INVALID_LOGIN);
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
   await recordAuthAttempt(
     "login",
     "success",
-    usernameValidation.normalized,
+    normalized,
     ipAddress,
   );
   await createSession(user.id);

@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
-import type { UserRole, UserStatus } from "@prisma/client";
+import { Prisma, type User, type UserRole, type UserStatus } from "@prisma/client";
 
 import { writeAuditLog } from "@/lib/admin/audit";
 import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
 import { validateEmail } from "@/lib/auth/email-address";
-import { normalizeUsername } from "@/lib/auth/username";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -47,7 +46,6 @@ async function updateUser(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
-  const username = asString(data.username);
   const displayName = asString(data.displayName);
   const email = asString(data.email);
   const emailValidation = email ? validateEmail(email) : null;
@@ -58,20 +56,33 @@ async function updateUser(request: NextRequest, context: RouteContext) {
   }
 
   const normalizedEmail = emailValidation?.ok ? emailValidation.normalized : null;
-  const after = await prisma.user.update({
-    where: { id },
-    data: {
-      username: username || before.username,
-      usernameNormalized: username ? normalizeUsername(username) : before.usernameNormalized,
-      displayName: displayName || before.displayName,
-      email: normalizedEmail ?? before.email,
-      emailNormalized: normalizedEmail ?? before.emailNormalized,
-      emailVerifiedAt: normalizedEmail ? new Date() : before.emailVerifiedAt,
-      role: parseRole(data.role),
-      status,
-      deletedAt: status === "deleted" ? new Date() : null,
-    },
-  });
+  let after: User;
+
+  try {
+    after = await prisma.user.update({
+      where: { id },
+      data: {
+        username: normalizedEmail ?? before.username,
+        usernameNormalized: normalizedEmail ?? before.usernameNormalized,
+        displayName: displayName || before.displayName,
+        email: normalizedEmail ?? before.email,
+        emailNormalized: normalizedEmail ?? before.emailNormalized,
+        emailVerifiedAt: normalizedEmail ? new Date() : before.emailVerifiedAt,
+        role: parseRole(data.role),
+        status,
+        deletedAt: status === "deleted" ? new Date() : null,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return Response.json({ error: "Esse email já está em uso." }, { status: 409 });
+    }
+
+    throw error;
+  }
 
   if (status !== "active") {
     await prisma.session.updateMany({

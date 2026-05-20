@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import {
+  redirectBackWithMessage,
+  requireAdminApi,
+  shouldRedirectBack,
+} from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -40,7 +44,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(
+      request,
+      "/admin/matches",
+      "mensagem",
+      `Jogo ${before.matchNumber} publicado.`,
+    );
   }
 
   return Response.json({ ok: true, match: after });

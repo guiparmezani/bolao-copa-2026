@@ -69,7 +69,7 @@ http://localhost:3000
 The default `.env.example` creates a local admin during seed:
 
 ```text
-username: admin
+email: admin@local.test
 password: troque-esta-senha-local
 ```
 
@@ -89,7 +89,7 @@ DATABASE_URL="postgresql://bolao:bolao_dev_password@localhost:5432/bolao_copa_20
 Recommended for local admin seed:
 
 ```env
-ADMIN_USERNAME="admin"
+ADMIN_EMAIL="admin@local.test"
 ADMIN_DISPLAY_NAME="Admin"
 ADMIN_PASSWORD="troque-esta-senha-local"
 ```
@@ -343,7 +343,7 @@ AUTH_SECRET=troque-por-um-segredo-longo
 APP_URL=https://bolao-facabundos-2026.parmezani.com
 PRIMARY_DATA_PROVIDER=openfootball-static
 WORKER_INTERVAL_SECONDS=300
-ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@bolao-facabundos-2026.parmezani.com
 ADMIN_DISPLAY_NAME=Admin
 ADMIN_PASSWORD=troque-esta-senha-admin
 EMAIL_FROM="Bolão dos Facabundos <noreply@bolao-facabundos-2026.parmezani.com>"

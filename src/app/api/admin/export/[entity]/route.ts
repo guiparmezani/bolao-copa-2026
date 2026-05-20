@@ -13,7 +13,6 @@ const exporters = {
     prisma.user.findMany({
       select: {
         id: true,
-        username: true,
         email: true,
         displayName: true,
         role: true,
@@ -69,7 +68,7 @@ const exporters = {
       ...matchPredictions.map((prediction) => ({
         tipo: "placar",
         jogador: prediction.user.displayName,
-        usuario: prediction.user.username,
+        email: prediction.user.email ?? prediction.user.emailNormalized ?? "",
         faseEnvio: prediction.submission.phaseGroup,
         statusEnvio: prediction.submission.status,
         confirmadoEm: prediction.confirmedAt,
@@ -86,7 +85,7 @@ const exporters = {
       ...placementPredictions.map((prediction) => ({
         tipo: "colocacao",
         jogador: prediction.user.displayName,
-        usuario: prediction.user.username,
+        email: prediction.user.email ?? prediction.user.emailNormalized ?? "",
         faseEnvio: prediction.submission.phaseGroup,
         statusEnvio: prediction.submission.status,
         confirmadoEm: prediction.confirmedAt,
@@ -132,7 +131,7 @@ const fallbackHeaders = {
   predictions: [
     "tipo",
     "jogador",
-    "usuario",
+    "email",
     "faseEnvio",
     "statusEnvio",
     "confirmadoEm",

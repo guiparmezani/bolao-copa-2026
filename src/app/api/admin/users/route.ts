@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
-import type { UserRole } from "@prisma/client";
+import { Prisma, type User, type UserRole } from "@prisma/client";
 
 import { writeAuditLog } from "@/lib/admin/audit";
 import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
 import { validateEmail } from "@/lib/auth/email-address";
 import { hashPassword } from "@/lib/auth/password";
-import { normalizeUsername } from "@/lib/auth/username";
 import { prisma } from "@/lib/prisma";
 
 function parseRole(value: unknown): UserRole {
@@ -45,36 +44,48 @@ export async function POST(request: NextRequest) {
   }
 
   const data = await readRequestData(request);
-  const username = asString(data.username);
   const displayName = asString(data.displayName);
   const email = asString(data.email);
   const password = asString(data.password);
-  const emailValidation = email ? validateEmail(email) : null;
+  const emailValidation = validateEmail(email);
 
-  if (!username || !displayName || password.length < 8) {
+  if (!displayName || password.length < 8) {
     return Response.json(
-      { error: "Informe nome, usuário e senha temporária com ao menos 8 caracteres." },
+      { error: "Informe nome, email e senha temporária com ao menos 8 caracteres." },
       { status: 400 },
     );
   }
 
-  if (emailValidation && !emailValidation.ok) {
+  if (!emailValidation.ok) {
     return Response.json({ error: emailValidation.error }, { status: 400 });
   }
 
-  const normalizedEmail = emailValidation?.ok ? emailValidation.normalized : null;
-  const created = await prisma.user.create({
-    data: {
-      username,
-      usernameNormalized: normalizeUsername(username),
-      displayName,
-      email: normalizedEmail,
-      emailNormalized: normalizedEmail,
-      emailVerifiedAt: normalizedEmail ? new Date() : null,
-      passwordHash: await hashPassword(password),
-      role: parseRole(data.role),
-    },
-  });
+  const normalizedEmail = emailValidation.normalized;
+  let created: User;
+
+  try {
+    created = await prisma.user.create({
+      data: {
+        username: normalizedEmail,
+        usernameNormalized: normalizedEmail,
+        displayName,
+        email: normalizedEmail,
+        emailNormalized: normalizedEmail,
+        emailVerifiedAt: new Date(),
+        passwordHash: await hashPassword(password),
+        role: parseRole(data.role),
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return Response.json({ error: "Esse email já está em uso." }, { status: 409 });
+    }
+
+    throw error;
+  }
 
   await writeAuditLog({
     actorUserId: actor.id,

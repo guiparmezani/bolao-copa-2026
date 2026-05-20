@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 type PredictionMatch = {
   away: {
@@ -40,6 +40,22 @@ type GroupPredictionFormProps = {
   title?: string;
 };
 
+const completeScoreMessage =
+  "Preencha todos os placares destacados com números inteiros maiores ou iguais a zero.";
+const draftScoreMessage =
+  "Complete os dois gols nos jogos destacados ou limpe esses campos para salvar o rascunho.";
+
+class PredictionValidationError extends Error {
+  invalidMatchIds: string[];
+
+  constructor(message: string, invalidMatchIds: string[]) {
+    super(message);
+    this.name = "PredictionValidationError";
+    this.invalidMatchIds = invalidMatchIds;
+    Object.setPrototypeOf(this, PredictionValidationError.prototype);
+  }
+}
+
 function buildInitialValues(
   matches: PredictionMatch[],
   initialPredictions: Record<string, PredictionValue>,
@@ -53,35 +69,94 @@ function buildInitialValues(
 }
 
 function toPayload(values: Record<string, PredictionValue>, requireComplete: boolean) {
-  return Object.entries(values)
-    .filter(([, value]) => {
-      if (requireComplete) {
-        return true;
-      }
+  const invalidMatchIds: string[] = [];
+  const predictions = [];
 
-      return value.homeGoals !== "" && value.awayGoals !== "";
-    })
-    .map(([matchId, value]) => {
-      const homeGoals = Number(value.homeGoals);
-      const awayGoals = Number(value.awayGoals);
+  for (const [matchId, value] of Object.entries(values)) {
+    const hasHomeGoals = value.homeGoals !== "";
+    const hasAwayGoals = value.awayGoals !== "";
+    const shouldValidate = requireComplete || hasHomeGoals || hasAwayGoals;
 
-      if (
-        value.homeGoals === "" ||
-        value.awayGoals === "" ||
-        !Number.isInteger(homeGoals) ||
-        !Number.isInteger(awayGoals) ||
-        homeGoals < 0 ||
-        awayGoals < 0
-      ) {
-        throw new Error("Preencha todos os placares com números inteiros maiores ou iguais a zero.");
-      }
+    if (!shouldValidate) {
+      continue;
+    }
 
-      return {
-        awayGoals,
-        homeGoals,
-        matchId,
-      };
+    const homeGoals = Number(value.homeGoals);
+    const awayGoals = Number(value.awayGoals);
+    const isValid =
+      hasHomeGoals &&
+      hasAwayGoals &&
+      Number.isInteger(homeGoals) &&
+      Number.isInteger(awayGoals) &&
+      homeGoals >= 0 &&
+      awayGoals >= 0;
+
+    if (!isValid) {
+      invalidMatchIds.push(matchId);
+      continue;
+    }
+
+    predictions.push({
+      awayGoals,
+      homeGoals,
+      matchId,
     });
+  }
+
+  if (invalidMatchIds.length > 0) {
+    throw new PredictionValidationError(
+      requireComplete ? completeScoreMessage : draftScoreMessage,
+      invalidMatchIds,
+    );
+  }
+
+  return predictions;
+}
+
+function getPredictionValidationError(error: unknown) {
+  if (error instanceof PredictionValidationError) {
+    return error;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "invalidMatchIds" in error &&
+    Array.isArray((error as { invalidMatchIds: unknown }).invalidMatchIds)
+  ) {
+    return error as PredictionValidationError;
+  }
+
+  return null;
+}
+
+function getInvalidMatchIds(values: Record<string, PredictionValue>, requireComplete: boolean) {
+  const invalidMatchIds: string[] = [];
+
+  for (const [matchId, value] of Object.entries(values)) {
+    const hasHomeGoals = value.homeGoals !== "";
+    const hasAwayGoals = value.awayGoals !== "";
+
+    if (!requireComplete && !hasHomeGoals && !hasAwayGoals) {
+      continue;
+    }
+
+    const homeGoals = Number(value.homeGoals);
+    const awayGoals = Number(value.awayGoals);
+    const isValid =
+      hasHomeGoals &&
+      hasAwayGoals &&
+      Number.isInteger(homeGoals) &&
+      Number.isInteger(awayGoals) &&
+      homeGoals >= 0 &&
+      awayGoals >= 0;
+
+    if (!isValid) {
+      invalidMatchIds.push(matchId);
+    }
+  }
+
+  return invalidMatchIds;
 }
 
 export function GroupPredictionForm({
@@ -100,19 +175,29 @@ export function GroupPredictionForm({
   const [values, setValues] = useState(() => buildInitialValues(matches, initialPredictions));
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [invalidMatchIds, setInvalidMatchIds] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checked, setChecked] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const messageRef = useRef<HTMLDivElement>(null);
   const groupedMatches = useMemo(() => {
     return matches.reduce<Record<string, PredictionMatch[]>>((groups, match) => {
       groups[match.dateKey] = [...(groups[match.dateKey] ?? []), match];
       return groups;
     }, {});
   }, [matches]);
+  const invalidMatchSet = useMemo(() => new Set(invalidMatchIds), [invalidMatchIds]);
   const editable = isOpen && !isConfirmed;
 
-  async function submitDraft(nextValues = values) {
+  function scrollToMessage() {
+    window.setTimeout(() => {
+      messageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  }
+
+  async function submitDraft(nextValues = values, scrollOnComplete = true) {
     setError(null);
+    setInvalidMatchIds([]);
 
     try {
       const predictions = toPayload(nextValues, false);
@@ -129,9 +214,20 @@ export function GroupPredictionForm({
         throw new Error(data.error ?? "Não foi possível salvar o rascunho.");
       }
 
+      setInvalidMatchIds([]);
       setStatus("Rascunho salvo.");
+      if (scrollOnComplete) {
+        scrollToMessage();
+      }
     } catch (draftError) {
+      const validationError = getPredictionValidationError(draftError);
+
+      setStatus(null);
+      setInvalidMatchIds(validationError?.invalidMatchIds ?? getInvalidMatchIds(nextValues, false));
       setError(draftError instanceof Error ? draftError.message : "Não foi possível salvar.");
+      if (scrollOnComplete) {
+        scrollToMessage();
+      }
     }
   }
 
@@ -146,6 +242,7 @@ export function GroupPredictionForm({
     };
 
     setValues(nextValues);
+    setInvalidMatchIds((current) => current.filter((id) => id !== matchId));
     setStatus("Alterações ainda não salvas.");
   }
 
@@ -155,9 +252,27 @@ export function GroupPredictionForm({
     });
   }
 
+  function openConfirmDialog() {
+    setStatus(null);
+    setError(null);
+
+    const invalidIds = getInvalidMatchIds(values, true);
+
+    if (invalidIds.length > 0) {
+      setInvalidMatchIds(invalidIds);
+      setError(completeScoreMessage);
+      scrollToMessage();
+      return;
+    }
+
+    setInvalidMatchIds([]);
+    setConfirmOpen(true);
+  }
+
   function confirmPredictions() {
     startTransition(async () => {
       setError(null);
+      setInvalidMatchIds([]);
 
       try {
         const predictions = toPayload(values, true);
@@ -176,12 +291,16 @@ export function GroupPredictionForm({
 
         window.location.assign("/dashboard");
       } catch (confirmError) {
+        const validationError = getPredictionValidationError(confirmError);
+
         setConfirmOpen(false);
+        setInvalidMatchIds(validationError?.invalidMatchIds ?? getInvalidMatchIds(values, true));
         setError(
           confirmError instanceof Error
             ? confirmError.message
             : "Não foi possível confirmar seus palpites.",
         );
+        scrollToMessage();
       }
     });
   }
@@ -199,7 +318,7 @@ export function GroupPredictionForm({
       <button
         className="button primary"
         disabled={!editable || isPending || matches.length === 0}
-        onClick={() => setConfirmOpen(true)}
+        onClick={openConfirmDialog}
         type="button"
       >
         Confirmar palpites
@@ -223,7 +342,10 @@ export function GroupPredictionForm({
       </section>
 
       {status || error ? (
-        <div className={error ? "form-error prediction-message" : "prediction-message"}>
+        <div
+          className={error ? "form-error prediction-message" : "prediction-message"}
+          ref={messageRef}
+        >
           {error ?? status}
         </div>
       ) : null}
@@ -244,9 +366,17 @@ export function GroupPredictionForm({
               <div className="schedule-day-matches">
                 {dayMatches.map((match) => {
                   const value = values[match.id] ?? { awayGoals: "", homeGoals: "" };
+                  const hasMatchError = invalidMatchSet.has(match.id);
 
                   return (
-                    <div className="prediction-match" key={match.id}>
+                    <div
+                      className={
+                        hasMatchError
+                          ? "prediction-match field-row-error"
+                          : "prediction-match"
+                      }
+                      key={match.id}
+                    >
                       <div className="match-meta-line">
                         <span>Jogo {match.matchNumber}</span>
                         <span>{match.timeLabel}</span>
@@ -255,10 +385,11 @@ export function GroupPredictionForm({
                       </div>
                       <div className="prediction-score-line">
                         <span className="schedule-team">
-                          <span aria-hidden="true">{match.home.flag}</span>
                           <strong>{match.home.name}</strong>
+                          <span aria-hidden="true">{match.home.flag}</span>
                         </span>
                         <input
+                          aria-invalid={hasMatchError || undefined}
                           aria-label={`Gols de ${match.home.name}`}
                           disabled={!editable}
                           inputMode="numeric"
@@ -266,7 +397,7 @@ export function GroupPredictionForm({
                           name={`home-${match.id}`}
                           onBlur={() => {
                             if (editable && value.homeGoals !== "" && value.awayGoals !== "") {
-                              void submitDraft();
+                              void submitDraft(undefined, false);
                             }
                           }}
                           onChange={(event) =>
@@ -278,6 +409,7 @@ export function GroupPredictionForm({
                         />
                         <span className="prediction-separator">x</span>
                         <input
+                          aria-invalid={hasMatchError || undefined}
                           aria-label={`Gols de ${match.away.name}`}
                           disabled={!editable}
                           inputMode="numeric"
@@ -285,7 +417,7 @@ export function GroupPredictionForm({
                           name={`away-${match.id}`}
                           onBlur={() => {
                             if (editable && value.homeGoals !== "" && value.awayGoals !== "") {
-                              void submitDraft();
+                              void submitDraft(undefined, false);
                             }
                           }}
                           onChange={(event) =>
@@ -302,6 +434,9 @@ export function GroupPredictionForm({
                       </div>
                       <div className="match-meta-line lower">
                         <span>{match.venueLabel}</span>
+                        {hasMatchError ? (
+                          <span className="field-error-text">Revise este placar.</span>
+                        ) : null}
                         {isConfirmed ? <span>Palpite bloqueado</span> : null}
                       </div>
                     </div>

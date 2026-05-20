@@ -57,3 +57,20 @@ export function redirectBack(request: NextRequest, fallback = "/admin") {
   const referer = request.headers.get("referer");
   return Response.redirect(referer ?? new URL(fallback, request.url), 303);
 }
+
+export function redirectBackWithMessage(
+  request: NextRequest,
+  fallback: string,
+  key: "aviso" | "erro" | "mensagem",
+  message: string,
+) {
+  const referer = request.headers.get("referer");
+  const url = new URL(referer ?? fallback, request.url);
+  url.searchParams.set(key, message);
+  for (const messageKey of ["aviso", "erro", "mensagem"]) {
+    if (messageKey !== key) {
+      url.searchParams.delete(messageKey);
+    }
+  }
+  return Response.redirect(url, 303);
+}

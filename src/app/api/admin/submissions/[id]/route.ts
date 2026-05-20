@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import {
+  redirectBackWithMessage,
+  requireAdminApi,
+  shouldRedirectBack,
+} from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
 import { prisma } from "@/lib/prisma";
 
@@ -29,10 +33,28 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
   const before = await prisma.predictionSubmission.findUnique({ where: { id } });
 
   if (!before) {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(
+        request,
+        "/admin/submissions",
+        "erro",
+        "Envio não encontrado.",
+      );
+    }
+
     return Response.json({ error: "Envio não encontrado." }, { status: 404 });
   }
 
   if (asString(data.confirmation) !== "DESBLOQUEAR") {
+    if (shouldRedirectBack(request)) {
+      return redirectBackWithMessage(
+        request,
+        "/admin/submissions",
+        "erro",
+        "Digite DESBLOQUEAR para abrir este envio.",
+      );
+    }
+
     return Response.json({ error: "Digite DESBLOQUEAR para abrir este envio." }, { status: 400 });
   }
 
@@ -66,7 +88,12 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/submissions");
+    return redirectBackWithMessage(
+      request,
+      "/admin/submissions",
+      "mensagem",
+      "Envio desbloqueado. O jogador já pode editar e reenviar os palpites.",
+    );
   }
 
   return Response.json({ ok: true, submission: after });

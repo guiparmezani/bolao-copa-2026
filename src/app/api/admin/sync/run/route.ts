@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import { redirectBackWithMessage, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
 import {
   finalizeFinishedMatches,
   openKnockoutPredictionsIfReady,
@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request);
+    return redirectBackWithMessage(
+      request,
+      "/admin",
+      "mensagem",
+      "Sync executado. Confira os status de dados atualizados.",
+    );
   }
 
   return Response.json({ ok: true, result });

@@ -148,7 +148,7 @@ Use a self-hosted Next.js application with PostgreSQL.
 
 - Frontend and backend: Next.js App Router, React, TypeScript.
 - Styling: Tailwind CSS plus a small design-token layer for the Brazil theme.
-- Auth: Auth.js with username/password credentials and a Prisma adapter, or a local session implementation if Auth.js credentials flows become too awkward.
+- Auth: Auth.js with email/password credentials and a Prisma adapter, or a local session implementation if Auth.js credentials flows become too awkward.
 - Password hashing: Argon2id.
 - Database: PostgreSQL, isolated to this app's Docker Compose project.
 - ORM/migrations: Prisma.
@@ -160,7 +160,7 @@ Why this stack:
 
 - The app is small but stateful: server-rendered pages, forms, auth, and DB transactions matter more than a separate SPA/API split.
 - Next.js keeps the initial product compact while supporting public pages, authenticated pages, server actions/routes, and good mobile performance.
-- PostgreSQL makes immutable submissions, unique usernames, leaderboard queries, audit logs, and provider snapshots straightforward.
+- PostgreSQL makes immutable submissions, unique emails, leaderboard queries, audit logs, and provider snapshots straightforward.
 - The VPS already runs Docker, Compose, and shared Caddy, so an isolated Compose deployment fits the current infrastructure.
 
 ## VPS Hosting Constraints
@@ -273,15 +273,15 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 `/signup`
 
-- Fields: display name, email, unique username, password, password confirmation.
-- Username normalization: trim, lowercase, allow `a-z`, `0-9`, `_`, `.`, `-`.
-- Enforce unique username at DB level.
+- Fields: display name, email, password, password confirmation.
+- Email normalization: trim, lowercase, validate email shape.
+- Enforce unique email at DB level.
 - Email is normalized, stored uniquely, and receives an account-confirmation
   link through Resend when email env vars are configured.
 
 `/login`
 
-- Username/password login.
+- Email/password login.
 - Rate-limited.
 
 ### Authenticated Pages
@@ -410,12 +410,12 @@ User management:
 
 - Add user manually:
   - display name;
-  - username;
+  - email;
   - temporary password or password reset link;
   - role.
 - Update user:
   - display name;
-  - username, with uniqueness validation;
+  - email, with uniqueness validation;
   - role;
   - active/disabled status.
 - Delete/deactivate user:
@@ -604,12 +604,15 @@ Use UUID primary keys unless a table benefits from a provider numeric ID plus so
 ### `users`
 
 - `id`
-- `username`
-- `username_normalized` unique
+- `email`
+- `email_normalized` unique
 - `display_name`
 - `password_hash`
 - `role` enum: `player`, `admin`
 - `status` enum: `active`, `disabled`, `deleted`
+- Legacy compatibility columns `username` and `username_normalized` may remain in
+  the current Prisma schema, but they are populated from normalized email and
+  must not be exposed as user-facing identifiers.
 - `deleted_at`
 - `created_at`
 - `updated_at`
@@ -1037,8 +1040,8 @@ Cancelar | Confirmar e travar
 - Passwords: Argon2id, never reversible encryption.
 - Sessions: secure, HTTP-only cookies in production.
 - CSRF protection for mutations.
-- Login/signup rate limiting by IP and username.
-- Normalize usernames and enforce DB uniqueness.
+- Login/signup rate limiting by IP and email.
+- Normalize emails and enforce DB uniqueness.
 - Validate prediction deadlines on the server, not only in the UI.
 - Use transaction boundaries for confirmation:
   - validate deadline;
@@ -1071,7 +1074,7 @@ Unit tests:
   - exact cap behavior;
   - penalty shootout data ignored for score prediction.
 - Deadline and immutability rules.
-- Username normalization.
+- Email normalization.
 - FIFA 2026 format helpers if implemented locally:
   - 12 groups of four;
   - top two plus eight best third-place teams;
@@ -1082,7 +1085,7 @@ Unit tests:
 Integration tests:
 
 - Signup creates unique user.
-- Duplicate username is rejected.
+- Duplicate email is rejected.
 - Draft save works before deadline.
 - Confirmation locks predictions.
 - Confirmed predictions cannot be edited.
@@ -1105,7 +1108,7 @@ E2E tests:
 
 2. Auth and users - implemented in milestone 2
    - Signup/login/logout.
-   - Username uniqueness and password hashing.
+   - Email uniqueness and password hashing.
    - Admin role seed.
 
 3. Tournament data
@@ -1165,7 +1168,7 @@ Required:
 
 Optional:
 
-- `ADMIN_USERNAME`
+- `ADMIN_EMAIL`
 - `ADMIN_DISPLAY_NAME`
 - `ADMIN_PASSWORD`
 - `PREDICTION_REVEAL_POLICY`
@@ -1177,7 +1180,7 @@ Optional:
 
 ## Acceptance Criteria
 
-- Users can create accounts with unique usernames and log in.
+- Users can create accounts with unique emails and log in.
 - Users can submit group predictions and cannot alter them after confirmation.
 - Knockout prediction form is unavailable until the knockout fixtures are fully defined.
 - Users can submit knockout predictions and cannot alter them after confirmation.

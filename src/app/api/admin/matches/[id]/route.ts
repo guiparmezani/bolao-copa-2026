@@ -2,8 +2,13 @@ import { NextRequest } from "next/server";
 import type { MatchStatus, PublicationStatus } from "@prisma/client";
 
 import { writeAuditLog } from "@/lib/admin/audit";
-import { redirectBack, requireAdminApi, shouldRedirectBack } from "@/lib/admin/auth";
+import {
+  redirectBackWithMessage,
+  requireAdminApi,
+  shouldRedirectBack,
+} from "@/lib/admin/auth";
 import { asDate, asNullableString, asNumber, asString, readRequestData } from "@/lib/admin/forms";
+import { recomputeLeaderboard } from "@/lib/leaderboard";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -71,18 +76,34 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
     },
   });
 
+  const hasOfficialScore = after.homeGoals !== null && after.awayGoals !== null;
+  let leaderboard = null;
+  let messageKey: "aviso" | "mensagem" = "mensagem";
+  let message = "Metadados salvos.";
+
+  if (after.status === "finished" && hasOfficialScore) {
+    leaderboard = await recomputeLeaderboard();
+    message = `Metadados salvos e ranking recalculado para ${leaderboard.leaderboardRows} jogador(es).`;
+  } else if (hasOfficialScore) {
+    messageKey = "aviso";
+    message = "Metadados salvos. O ranking só pontua jogos com status Encerrado.";
+  } else if (after.status === "finished") {
+    messageKey = "aviso";
+    message = "Metadados salvos. Informe os gols oficiais para pontuar o ranking.";
+  }
+
   await writeAuditLog({
     actorUserId: user.id,
     action: "match.update",
     targetEntity: "match",
     targetId: id,
     before,
-    after,
+    after: { match: after, leaderboard },
   });
 
   if (shouldRedirectBack(request)) {
-    return redirectBack(request, "/admin/matches");
+    return redirectBackWithMessage(request, "/admin/matches", messageKey, message);
   }
 
-  return Response.json({ ok: true, match: after });
+  return Response.json({ ok: true, leaderboard, match: after });
 }

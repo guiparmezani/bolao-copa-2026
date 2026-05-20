@@ -219,8 +219,8 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
                             home.placeholder ? "schedule-team placeholder" : "schedule-team"
                           }
                         >
-                          <span aria-hidden="true">{home.flag}</span>
                           <strong>{home.name}</strong>
+                          <span aria-hidden="true">{home.flag}</span>
                         </span>
                         <span className="schedule-score">{getScore(match)}</span>
                         <span
