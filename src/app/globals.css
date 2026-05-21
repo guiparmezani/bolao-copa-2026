@@ -5,6 +5,7 @@
   --page-max-width: 1320px;
   --page-gutter: 28px;
   --background: #061412;
+  --stadium-bg: url("https://commons.wikimedia.org/wiki/Special:FilePath/The_Peninsula_Stadium_at_night_-_Salford_City_-_Aug_24.jpg?width=2600");
   --text: #eef9ee;
   --muted: #a4b9ae;
   --panel: rgba(12, 34, 30, 0.86);
@@ -76,13 +77,32 @@ select:disabled {
 }
 
 .shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
-  background:
-    var(--overlay),
-    url("https://commons.wikimedia.org/wiki/Special:FilePath/The_Peninsula_Stadium_at_night_-_Salford_City_-_Aug_24.jpg?width=1800");
-  background-attachment: fixed;
+  background: var(--background);
+}
+
+.shell::before,
+.shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shell::before {
+  z-index: -2;
+  background-image: var(--stadium-bg);
   background-position: center top;
+  background-repeat: no-repeat;
   background-size: cover;
+  transform: translateZ(0);
+}
+
+.shell::after {
+  z-index: -1;
+  background: var(--overlay);
 }
 
 .site-header {

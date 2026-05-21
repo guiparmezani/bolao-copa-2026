@@ -5,7 +5,7 @@ their email, submit locked score predictions, pick champion/runner-up/third
 place, browse submitted predictions, and follow the leaderboard.
 
 The app is local-first right now. Production deployment is planned for
-`bolao-facabundos-2026.parmezani.com`, behind Caddy on the `parmavps` VPS, but
+`bolao.parmezani.com`, behind Caddy on the `parmavps` VPS, but
 the repo can be developed and validated fully on a local machine.
 
 ## What Is Implemented
@@ -112,7 +112,7 @@ POSTGRES_DB=bolao_copa_2026
 POSTGRES_USER=bolao
 POSTGRES_PASSWORD=troque-esta-senha
 AUTH_SECRET=troque-por-um-segredo-longo
-APP_URL=https://bolao-facabundos-2026.parmezani.com
+APP_URL=https://bolao.parmezani.com
 PRIMARY_DATA_PROVIDER=openfootball-static
 WORKER_INTERVAL_SECONDS=300
 ```
@@ -340,13 +340,13 @@ POSTGRES_USER=bolao
 POSTGRES_PASSWORD=troque-esta-senha
 DATABASE_URL=postgresql://bolao:troque-esta-senha@postgres:5432/bolao_copa_2026?schema=public
 AUTH_SECRET=troque-por-um-segredo-longo
-APP_URL=https://bolao-facabundos-2026.parmezani.com
+APP_URL=https://bolao.parmezani.com
 PRIMARY_DATA_PROVIDER=openfootball-static
 WORKER_INTERVAL_SECONDS=300
-ADMIN_EMAIL=admin@bolao-facabundos-2026.parmezani.com
+ADMIN_EMAIL=admin@bolao.parmezani.com
 ADMIN_DISPLAY_NAME=Admin
 ADMIN_PASSWORD=troque-esta-senha-admin
-EMAIL_FROM="Bolão dos Facabundos <noreply@bolao-facabundos-2026.parmezani.com>"
+EMAIL_FROM="Bolão dos Facabundos <noreply@bolao.parmezani.com>"
 RESEND_API_KEY=re_xxx
 ```
 
@@ -366,7 +366,7 @@ override if you need a direct localhost port.
 The final host is expected to be:
 
 ```text
-bolao-facabundos-2026.parmezani.com
+bolao.parmezani.com
 ```
 
 The target VPS alias is `parmavps`. Before doing any deploy, SSH, Caddy reload,
@@ -376,7 +376,7 @@ deployment rulebook in the OpenClaw workspace and follow it.
 Expected Caddy route:
 
 ```caddyfile
-bolao-facabundos-2026.parmezani.com {
+bolao.parmezani.com {
     encode zstd gzip
     reverse_proxy bolao-copa-2026-web:3000
 }

@@ -234,13 +234,13 @@ volumes:
 Caddy target pattern:
 
 ```caddyfile
-bolao-facabundos-2026.parmezani.com {
+bolao.parmezani.com {
     encode zstd gzip
     reverse_proxy bolao-copa-2026-web:3000
 }
 ```
 
-Final domain: `bolao-facabundos-2026.parmezani.com`.
+Final domain: `bolao.parmezani.com`.
 
 Deployment is not part of the initial implementation sprint. Build and validate locally first, then deploy to `parmavps` later following the VPS deployment rulebook.
 
