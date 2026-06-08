@@ -592,6 +592,17 @@ h3 {
   gap: 14px;
 }
 
+.home-panels-layout,
+.home-panels-main,
+.home-panels-side,
+.rules-layout,
+.rules-main,
+.rules-side {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
 .row {
   min-height: 64px;
   display: grid;
@@ -1742,6 +1753,10 @@ h3 {
     padding-top: 42px;
   }
 
+  .hero-copy {
+    padding-left: 0;
+  }
+
   h1 {
     font-size: 4.8rem;
   }
@@ -1749,6 +1764,24 @@ h3 {
   .layout {
     grid-template-columns: 1.05fr 0.95fr;
     align-items: start;
+  }
+
+  .home-panels-layout {
+    grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+  }
+
+  .rules-layout {
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  }
+
+  .rules-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .rules-side {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .match-tools {

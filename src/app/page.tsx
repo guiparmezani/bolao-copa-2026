@@ -223,111 +223,117 @@ export default async function Home() {
       </section>
 
       <section className="band" aria-label="Prévia pública">
-        <div className="layout">
-          <article className="card" id="ranking">
-            <div className="card-head">
-              <h2>Ranking geral</h2>
-              <span className="meta">
-                {latestLeaderboardUpdate
-                  ? `Atualizado em ${formatUpdatedAt(latestLeaderboardUpdate)}`
-                  : "Aguardando pontuação"}
-              </span>
-            </div>
-            <div>
-              {leaderboard.length === 0 ? (
-                <div className="empty-state">
-                  <strong>Ranking ainda vazio</strong>
-                  <span>Assim que houver pontos calculados, a classificação aparece aqui.</span>
-                </div>
-              ) : (
-                leaderboard.map((entry) => (
-                  <div className="row" key={entry.id}>
-                    <span className="rank">{entry.rank}</span>
-                    <span className="name">
-                      <strong>{entry.user.displayName}</strong>
-                      <span>
-                        {entry.exactCount} exatos • {entry.outcomeCount} vencedores
-                      </span>
+        <div className="home-panels-layout">
+          <div className="home-panels-main">
+            <article className="card" id="ranking">
+              <div className="card-head">
+                <h2>Ranking geral</h2>
+                <span className="meta">
+                  {latestLeaderboardUpdate
+                    ? `Atualizado em ${formatUpdatedAt(latestLeaderboardUpdate)}`
+                    : "Aguardando pontuação"}
+                </span>
+              </div>
+              <div>
+                {leaderboard.length === 0 ? (
+                  <div className="empty-state">
+                    <strong>Ranking ainda vazio</strong>
+                    <span>
+                      Assim que houver pontos calculados, a classificação aparece aqui.
                     </span>
-                    <span className="pts">{formatPoints(entry.totalPoints)}</span>
                   </div>
-                ))
-              )}
-            </div>
-          </article>
-
-          <article className="card" id="jogos">
-            <div className="card-head">
-              <h2>Próximos jogos</h2>
-              <span className="meta">Horário de Brasília</span>
-            </div>
-            <div className="matches">
-              {nextMatches.length === 0 ? (
-                <div className="empty-state">
-                  <strong>Nenhum jogo publicado</strong>
-                  <span>Quando a tabela estiver disponível, os próximos jogos aparecem aqui.</span>
-                </div>
-              ) : (
-                nextMatches.map((match) => (
-                  <div className="match-mini" key={match.id}>
-                    <div className="line">
-                      <span>
-                        {formatBrazilDate(match.kickoffAt)} •{" "}
-                        {formatBrazilTime(match.kickoffAt)}
+                ) : (
+                  leaderboard.map((entry) => (
+                    <div className="row" key={entry.id}>
+                      <span className="rank">{entry.rank}</span>
+                      <span className="name">
+                        <strong>{entry.user.displayName}</strong>
+                        <span>
+                          {entry.exactCount} exatos • {entry.outcomeCount} vencedores
+                        </span>
                       </span>
-                      <span>{phaseLabels[match.phase]}</span>
+                      <span className="pts">{formatPoints(entry.totalPoints)}</span>
                     </div>
-                    <strong>
-                      {getTeamName(match.homeTeam, match.homePlaceholder, "after")} x{" "}
-                      {getTeamName(match.awayTeam, match.awayPlaceholder, "before")}
-                    </strong>
+                  ))
+                )}
+              </div>
+            </article>
+
+            <article className="card" id="jogos">
+              <div className="card-head">
+                <h2>Próximos jogos</h2>
+                <span className="meta">Horário de Brasília</span>
+              </div>
+              <div className="matches">
+                {nextMatches.length === 0 ? (
+                  <div className="empty-state">
+                    <strong>Nenhum jogo publicado</strong>
+                    <span>
+                      Quando a tabela estiver disponível, os próximos jogos aparecem aqui.
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-            <div className="info compact-info">
-              <Link className="button" href="/matches">
-                Ver tabela completa
-              </Link>
-            </div>
-          </article>
-        </div>
+                ) : (
+                  nextMatches.map((match) => (
+                    <div className="match-mini" key={match.id}>
+                      <div className="line">
+                        <span>
+                          {formatBrazilDate(match.kickoffAt)} •{" "}
+                          {formatBrazilTime(match.kickoffAt)}
+                        </span>
+                        <span>{phaseLabels[match.phase]}</span>
+                      </div>
+                      <strong>
+                        {getTeamName(match.homeTeam, match.homePlaceholder, "after")} x{" "}
+                        {getTeamName(match.awayTeam, match.awayPlaceholder, "before")}
+                      </strong>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="info compact-info">
+                <Link className="button" href="/matches">
+                  Ver tabela completa
+                </Link>
+              </div>
+            </article>
+          </div>
 
-        <div className="layout">
-          <article className="card" id="regras">
-            <div className="card-head">
-              <h2>Como funciona</h2>
-              <span className="meta">Modelo 2022</span>
-            </div>
-            <div className="info">
-              <strong>Dois momentos para palpitar</strong>
-              <span>
-                Primeiro entram os placares da fase de grupos. Depois que os
-                confrontos do mata-mata estiverem definidos, abre a segunda
-                rodada de palpites.
-              </span>
-              <Link className="button" href="/rules">
-                Ler regras completas
-              </Link>
-            </div>
-          </article>
+          <aside className="home-panels-side">
+            <article className="card" id="regras">
+              <div className="card-head">
+                <h2>Como funciona</h2>
+                <span className="meta">Modelo 2022</span>
+              </div>
+              <div className="info">
+                <strong>Dois momentos para palpitar</strong>
+                <span>
+                  Primeiro entram os placares da fase de grupos. Depois que os
+                  confrontos do mata-mata estiverem definidos, abre a segunda
+                  rodada de palpites.
+                </span>
+                <Link className="button" href="/rules">
+                  Ler regras completas
+                </Link>
+              </div>
+            </article>
 
-          <article className="card">
-            <div className="card-head">
-              <h2>Pronto para entrar?</h2>
-              <span className="meta">Conta obrigatória</span>
-            </div>
-            <div className="info">
-              <strong>Seus palpites ficam protegidos</strong>
-              <span>
-                Depois de entrar, você vê suas telas privadas de envio. A
-                página inicial continua pública e sem dados restritos.
-              </span>
-              <Link className="button primary" href="/signup">
-                Criar conta ou entrar
-              </Link>
-            </div>
-          </article>
+            <article className="card">
+              <div className="card-head">
+                <h2>Pronto para entrar?</h2>
+                <span className="meta">Conta obrigatória</span>
+              </div>
+              <div className="info">
+                <strong>Seus palpites ficam protegidos</strong>
+                <span>
+                  Depois de entrar, você vê suas telas privadas de envio. A
+                  página inicial continua pública e sem dados restritos.
+                </span>
+                <Link className="button primary" href="/signup">
+                  Criar conta ou entrar
+                </Link>
+              </div>
+            </article>
+          </aside>
         </div>
       </section>
     </main>
