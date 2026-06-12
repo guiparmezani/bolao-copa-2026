@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PlayerAppFrame } from "@/components/app-frame";
+import { TeamFlag, TeamLabel } from "@/components/team-flag";
+import { UserIdentity } from "@/components/user-avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getKnockoutPredictionState } from "@/lib/predictions/knockout";
 import {
@@ -13,6 +15,7 @@ import {
   formatBrazilTime,
   phaseLabels,
 } from "@/lib/tournament";
+import { AvatarUploader } from "./avatar-uploader";
 
 function formatDeadline(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -31,9 +34,7 @@ function getTeamName(
     return placeholder ?? "A definir";
   }
 
-  return flagPosition === "after"
-    ? `${team.namePt} ${team.flagEmoji}`
-    : `${team.flagEmoji} ${team.namePt}`;
+  return <TeamLabel flagPosition={flagPosition} team={team} />;
 }
 
 export default async function DashboardPage() {
@@ -68,7 +69,9 @@ export default async function DashboardPage() {
       <section className="dashboard-header">
         <div>
           <span className="chip">Área protegida</span>
-          <h1>Olá, {user.displayName}</h1>
+          <h1>
+            Olá, <UserIdentity avatarSize="md" user={user} />
+          </h1>
           <p>
             Acompanhe o status dos seus envios e revise os palpites já
             confirmados.
@@ -77,6 +80,11 @@ export default async function DashboardPage() {
       </section>
 
       <section className="layout dashboard-grid">
+        <AvatarUploader
+          displayName={user.displayName}
+          initialAvatarImageDataUrl={user.avatarImageDataUrl}
+        />
+
         <article className="card">
           <div className="card-head">
             <h2>Palpites da fase de grupos</h2>
@@ -184,7 +192,7 @@ export default async function DashboardPage() {
                     <div className="dashboard-prediction-row" key={placement}>
                       <span className="meta">{placementLabels[placement]}</span>
                       <strong>
-                        {team.flagEmoji} {team.namePt}
+                        <TeamFlag team={team} /> {team.namePt}
                       </strong>
                     </div>
                   ) : null;

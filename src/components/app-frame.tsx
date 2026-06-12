@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { UserIdentity } from "@/components/user-avatar";
+
 type SidebarUser = {
+  avatarImageDataUrl?: string | null;
   displayName: string;
 };
 
@@ -33,7 +36,7 @@ export function PlayerSidebar({ className, user }: SidebarProps) {
     >
       <div className="app-sidebar-heading">
         <span className="meta">Logado como</span>
-        <strong>{user.displayName}</strong>
+        <UserIdentity avatarSize="md" user={user} />
       </div>
       <hr className="app-sidebar-separator" />
       <nav className="app-sidebar-nav" aria-label="Área do jogador">
@@ -41,7 +44,6 @@ export function PlayerSidebar({ className, user }: SidebarProps) {
         <Link href="/predictions/group">Enviar palpites</Link>
         <Link href="/predictions/knockout">Mata-mata</Link>
         <Link href="/predictions/winners">Campeões</Link>
-        <Link href="/predictions">Comparar</Link>
       </nav>
       <div className="app-sidebar-spacer" aria-hidden="true" />
       <div className="app-sidebar-footer">
@@ -66,7 +68,7 @@ export function AdminAppFrame({ children, user }: AppFrameProps) {
       <aside className="app-sidebar" aria-label="Menu administrativo">
         <div className="app-sidebar-heading">
           <span className="meta">Logado como</span>
-          <strong>{user.displayName}</strong>
+          <UserIdentity avatarSize="md" user={user} />
         </div>
         <hr className="app-sidebar-separator" />
         <nav className="app-sidebar-nav" aria-label="Admin">

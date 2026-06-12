@@ -1,6 +1,6 @@
 # Bolão dos Facabundos 2026 Tech Spec
 
-Last updated: 2026-05-19
+Last updated: 2026-06-12
 
 ## Purpose
 
@@ -253,6 +253,7 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 - Homepage for `Bolão dos Facabundos 2026`.
 - Brazil football visual theme, mobile-first.
 - Login/signup entry point.
+- Featured-games widget shows three compact rows: the two latest finished matches with official scores, then the first published match after the latest result that does not have a scoreboard yet. If no finished match exists yet, it falls back to the next scoreless published match by kickoff time.
 - Live leaderboard preview with participant name, total points, exact scores, and last updated time.
 - Public ranking should not expose unclosed predictions.
 
@@ -292,6 +293,10 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 - Shows submitted predictions read-only.
 - Shows pending drafts if not confirmed.
 - Shows current score breakdown after matches are scored.
+- Lets the player upload or remove a public avatar. The browser should crop and
+  resize the image before upload; the API validates JPG, PNG, and WebP data
+  URLs, stores a small image on the `users` row, and uses it beside player
+  names in ranking, prediction, and sidebar widgets where space allows.
 
 `/predictions/group`
 
@@ -321,7 +326,7 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 `/predictions`
 
 - Public `Palpites` viewer.
-- Shows a left-side list of players with confirmed submissions.
+- Shows a left-side list of active players.
 - Selecting a player shows that player's locked predictions.
 - Drafts never appear here.
 
@@ -526,7 +531,7 @@ Recommended default deadlines:
 - Group predictions close at 2026-06-11 23:59 `America/Sao_Paulo`.
 - Knockout predictions open only when the provider confirms all Round-of-32 participants and fixtures are non-placeholder.
 - Knockout predictions close at 2026-06-27 23:59 `America/Sao_Paulo`.
-- Winner/placement picks close at 2026-07-16 23:59 `America/Sao_Paulo`.
+- Winner/placement picks close at the same deadline as group predictions: 2026-06-11 23:59 `America/Sao_Paulo`.
 - Public prediction reveal happens per match as soon as that match is finished. Before a match is finished, submitted predictions for that match stay hidden to prevent copying.
 
 If the group decides to allow late group submissions, this should be an explicit admin setting and should mark late predictions separately.
@@ -544,13 +549,13 @@ Default component scores from the spreadsheet:
 
 | Phase | One Team Goals | Outcome | Scoreline | Exact Cap |
 | --- | ---: | ---: | ---: | ---: |
-| Group | 1 | 2 | 3 | 5 |
-| Round of 32 | 1.5 | 3 | 4.5 | 7.5 |
-| Round of 16/Oitavas | 1.5 | 3 | 4.5 | 7.5 |
-| Quarter-finals/Quartas | 1.5 | 3 | 4.5 | 7.5 |
-| Semi-finals/Semi | 2 | 4 | 6 | 10 |
-| Third-place | 3 | 6 | 9 | 15 |
-| Final/Finais | 3 | 6 | 9 | 15 |
+| Group | 1 | 2 | 3 | 6 |
+| Round of 32 | 1.5 | 3 | 4.5 | 9 |
+| Round of 16/Oitavas | 1.5 | 3 | 4.5 | 9 |
+| Quarter-finals/Quartas | 1.5 | 3 | 4.5 | 9 |
+| Semi-finals/Semi | 2 | 4 | 6 | 12 |
+| Third-place | 3 | 6 | 9 | 18 |
+| Final/Finais | 3 | 6 | 9 | 18 |
 
 Winner/placement bonuses from the 2022 bolão:
 
@@ -567,14 +572,14 @@ Match scoring algorithm:
 3. Let `actualOutcome = sign(actualHomeGoals - actualAwayGoals)`.
 4. Award `scoreline` points when both team scores match exactly.
 5. Award `outcome` points when `predictedOutcome === actualOutcome`.
-6. Award `oneTeamGoals` points when exactly one team's goals match and the full scoreline is not exact.
+6. Award `oneTeamGoals` points when at least one team's goals match. Exact scorelines also receive this component.
 7. Cap the result at `exactCap`.
 
 Examples for a group match:
 
 | Prediction | Actual | Points | Reason |
 | --- | --- | ---: | --- |
-| 2-1 | 2-1 | 5 | scoreline + outcome, capped at exact |
+| 2-1 | 2-1 | 6 | one team goals + outcome + scoreline |
 | 2-0 | 2-1 | 3 | home goals + winner |
 | 1-0 | 2-0 | 3 | away goals + winner |
 | 1-1 | 2-2 | 2 | draw outcome |
@@ -935,6 +940,7 @@ Auth:
 Authenticated:
 
 - `GET /api/me/predictions`
+- `POST /api/me/avatar`
 - `POST /api/predictions/group/draft`
 - `POST /api/predictions/group/confirm`
 - `POST /api/predictions/knockout/draft`

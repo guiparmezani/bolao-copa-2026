@@ -14,7 +14,10 @@ the repo can be developed and validated fully on a local machine.
   cards render from database data and show empty states instead of sample rows.
 - Signup/login/logout with local session cookies, Argon2id password hashes, and
   optional Resend-backed account confirmation email.
+- Admin-generated, single-use password reset links for account recovery.
 - Authenticated player dashboard and prediction forms in a logged-in sidebar.
+- Player avatar upload from the dashboard, stored as a small validated image on
+  the user record and shown beside names in ranking/prediction widgets.
 - Group-stage predictions with confirmation and immutability.
 - Knockout predictions that stay locked until Round-of-32 fixtures are real teams.
 - Champion, runner-up, and third-place picks using the same deadline as group predictions.
@@ -188,15 +191,18 @@ official/public documented APIs first.
 Public:
 
 - `/`
+- `/ranking`
 - `/matches`
 - `/rules`
-- `/predictions` public viewer of confirmed submitted predictions by player
+- `/predictions` public viewer of active players and confirmed predictions
 - `/login`
 - `/signup`
+- `/reset-password?token=...`
 
 Authenticated:
 
 - `/dashboard`
+- `/api/me/avatar`
 - `/predictions/group`
 - `/predictions/knockout`
 - `/predictions/winners`
@@ -223,8 +229,9 @@ Users can edit drafts until they confirm or the deadline closes. Confirmed
 prediction rows are protected by database triggers. Admin unlocks use an audited
 override path and should be treated as exceptional support operations.
 
-The public `Palpites` page lists players with confirmed submissions and shows
-their locked predictions. Admin users cannot create prediction submissions.
+The public `Palpites` page lists active players, shows confirmed predictions,
+and leaves blanks for unconfirmed or missing picks. Admin users cannot create
+prediction submissions.
 
 ## Useful Commands
 
@@ -299,6 +306,9 @@ curl -I http://localhost:3000/predictions
 ```
 
 Admin pages require login as an admin user.
+Admins can generate a 24-hour password reset link from `/admin/users`; the link
+opens `/reset-password` so the player can set a new password without the admin
+handling a temporary password.
 
 ## Production-Like Docker Compose
 

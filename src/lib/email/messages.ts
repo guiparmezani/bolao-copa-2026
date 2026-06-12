@@ -5,6 +5,7 @@ import type { PredictionPhaseGroup } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatBrazilDate, formatBrazilTime, phaseLabels } from "@/lib/tournament";
 import { placementLabels } from "@/lib/predictions/placement";
+import { getTeamPlainLabel } from "@/lib/team-flags";
 import { sendTransactionalEmail } from "./resend";
 
 function escapeHtml(value: string) {
@@ -16,7 +17,7 @@ function escapeHtml(value: string) {
 }
 
 function teamLabel(team: { flagEmoji: string; namePt: string } | null, placeholder: string | null) {
-  return team ? `${team.flagEmoji} ${team.namePt}` : placeholder ?? "A definir";
+  return team ? getTeamPlainLabel(team) : placeholder ?? "A definir";
 }
 
 export async function sendAccountVerificationEmail({
@@ -89,7 +90,7 @@ export async function sendPredictionSubmissionEmail(
 
     lines = predictions.map(
       (prediction) =>
-        `${placementLabels[prediction.placement]}: ${prediction.team.flagEmoji} ${prediction.team.namePt}`,
+        `${placementLabels[prediction.placement]}: ${getTeamPlainLabel(prediction.team)}`,
     );
   } else {
     const predictions = await prisma.matchPrediction.findMany({

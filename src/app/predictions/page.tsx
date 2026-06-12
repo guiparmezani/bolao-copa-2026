@@ -2,15 +2,12 @@ import type { PlacementPredictionKind } from "@prisma/client";
 import Link from "next/link";
 
 import { PlayerSidebar } from "@/components/app-frame";
+import { TeamLabel } from "@/components/team-flag";
+import { UserIdentity } from "@/components/user-avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { placementLabels } from "@/lib/predictions/placement";
 import { prisma } from "@/lib/prisma";
-import {
-  formatBrazilDate,
-  formatBrazilTime,
-  phaseLabels,
-  statusLabels,
-} from "@/lib/tournament";
+import { brazilTimeZone, formatBrazilTime, phaseLabels } from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +15,31 @@ type PredictionsPageProps = {
   searchParams?: Promise<{ usuario?: string }>;
 };
 
-async function getSubmittedUsers() {
+async function getPredictionUsers() {
   return prisma.user.findMany({
     where: {
       role: "player",
       status: "active",
-      predictionSubmissions: {
-        some: {
-          status: "confirmed",
-        },
-      },
     },
     select: {
+      avatarImageDataUrl: true,
       displayName: true,
       id: true,
     },
     orderBy: [{ displayName: "asc" }, { id: "asc" }],
+  });
+}
+
+async function getPublishedPredictionMatches() {
+  return prisma.match.findMany({
+    where: {
+      publicationStatus: "published",
+    },
+    include: {
+      awayTeam: true,
+      homeTeam: true,
+    },
+    orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
   });
 }
 
@@ -98,13 +104,23 @@ type SubmittedMatchPrediction = Awaited<
 type SubmittedPlacementPrediction = Awaited<
   ReturnType<typeof getUserPredictionData>
 >["placementPredictions"][number];
-type SubmittedUser = Awaited<ReturnType<typeof getSubmittedUsers>>[number];
+type PredictionMatch = Awaited<ReturnType<typeof getPublishedPredictionMatches>>[number];
+type PredictionUser = Awaited<ReturnType<typeof getPredictionUsers>>[number];
 type PredictionData = Awaited<ReturnType<typeof getUserPredictionData>>;
 
 const placementKinds: PlacementPredictionKind[] = ["champion", "runner_up", "third_place"];
 
+function formatCompactBrazilDate(value: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: brazilTimeZone,
+    year: "numeric",
+  }).format(value);
+}
+
 function teamName(
-  team: SubmittedMatchPrediction["match"]["homeTeam"],
+  team: PredictionMatch["homeTeam"],
   placeholder: string | null,
   flagPosition: "before" | "after",
 ) {
@@ -112,25 +128,23 @@ function teamName(
     return placeholder ?? "A definir";
   }
 
-  return flagPosition === "after"
-    ? `${team.namePt} ${team.flagEmoji}`
-    : `${team.flagEmoji} ${team.namePt}`;
+  return <TeamLabel flagPosition={flagPosition} team={team} />;
 }
 
-function officialScoreForMatch(match: SubmittedMatchPrediction["match"]) {
+function officialScoreForMatch(match: PredictionMatch) {
   if (match.homeGoals === null || match.awayGoals === null) {
-    return "x";
+    return "A definir";
   }
 
   return `${match.homeGoals} x ${match.awayGoals}`;
 }
 
-function groupByPhase(predictions: SubmittedMatchPrediction[]) {
-  return predictions.reduce<Map<string, SubmittedMatchPrediction[]>>(
-    (groups, prediction) => {
-      const current = groups.get(prediction.match.phase) ?? [];
-      current.push(prediction);
-      groups.set(prediction.match.phase, current);
+function groupMatchesByPhase(matches: PredictionMatch[]) {
+  return matches.reduce<Map<string, PredictionMatch[]>>(
+    (groups, match) => {
+      const current = groups.get(match.phase) ?? [];
+      current.push(match);
+      groups.set(match.phase, current);
       return groups;
     },
     new Map(),
@@ -150,7 +164,7 @@ function placementText(prediction: SubmittedPlacementPrediction | undefined) {
     return "—";
   }
 
-  return `${prediction.team.namePt} ${prediction.team.flagEmoji}`;
+  return <TeamLabel flagPosition="after" team={prediction.team} />;
 }
 
 function predictionByMatchId(predictions: SubmittedMatchPrediction[]) {
@@ -161,101 +175,90 @@ function placementByKind(predictions: SubmittedPlacementPrediction[]) {
   return new Map(predictions.map((prediction) => [prediction.placement, prediction]));
 }
 
-function comparisonMatches(
-  primary: SubmittedMatchPrediction[],
-  secondary: SubmittedMatchPrediction[],
-) {
-  const matchById = new Map<string, SubmittedMatchPrediction["match"]>();
-
-  for (const prediction of [...primary, ...secondary]) {
-    matchById.set(prediction.matchId, prediction.match);
-  }
-
-  return Array.from(matchById.values()).sort((a, b) => {
-    const kickoffDiff = a.kickoffAt.getTime() - b.kickoffAt.getTime();
-    return kickoffDiff === 0 ? a.matchNumber - b.matchNumber : kickoffDiff;
-  });
+function PredictionMatchSummary({ match }: { match: PredictionMatch }) {
+  return (
+    <div className="public-match-summary">
+      <span className="public-match-line">
+        <strong className="public-match-title">Jogo {match.matchNumber}</strong>
+        <span className="public-matchup">
+          <span className="public-team-name">
+            {teamName(match.homeTeam, match.homePlaceholder, "after")}
+          </span>
+          <span className="public-versus"> x </span>
+          <span className="public-team-name">
+            {teamName(match.awayTeam, match.awayPlaceholder, "before")}
+          </span>
+        </span>
+      </span>
+      <span className="public-match-secondary">
+        <span className="public-match-meta">
+          {formatCompactBrazilDate(match.kickoffAt)} • {formatBrazilTime(match.kickoffAt)}
+        </span>
+        <span className="public-result-score">Resultado: {officialScoreForMatch(match)}</span>
+      </span>
+    </div>
+  );
 }
 
 function PredictionDetailCard({
   data,
+  matches,
   user,
 }: {
   data: PredictionData;
-  user: SubmittedUser;
+  matches: PredictionMatch[];
+  user: PredictionUser;
 }) {
-  const groupedPredictions = groupByPhase(data.matchPredictions);
+  const groupedMatches = groupMatchesByPhase(matches);
+  const predictionsByMatch = predictionByMatchId(data.matchPredictions);
+  const placements = placementByKind(data.placementPredictions);
 
   return (
     <section className="card">
       <div className="card-head">
         <div>
-          <h2>{user.displayName}</h2>
+          <h2>
+            <UserIdentity avatarSize="md" user={user} />
+          </h2>
         </div>
         <span className="meta">
-          {data.matchPredictions.length} jogos / {data.placementPredictions.length} finais
+          {data.matchPredictions.length} de {matches.length} jogos /{" "}
+          {data.placementPredictions.length} finais
         </span>
       </div>
 
-      {data.placementPredictions.length > 0 ? (
-        <div className="rules-list">
-          {data.placementPredictions.map((prediction) => (
-            <div className="rules-row compact" key={prediction.id}>
-              <strong>{placementLabels[prediction.placement]}</strong>
-              <span>
-                {prediction.team.flagEmoji} {prediction.team.namePt}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <div className="rules-list">
+        {placementKinds.map((placement) => (
+          <div className="rules-row compact" key={placement}>
+            <strong>{placementLabels[placement]}</strong>
+            <span>{placementText(placements.get(placement))}</span>
+          </div>
+        ))}
+      </div>
 
-      {data.matchPredictions.length === 0 ? (
+      {matches.length === 0 ? (
         <div className="empty-state">
-          <strong>Nenhum palpite de jogo confirmado</strong>
-          <span>Este jogador ainda não confirmou placares.</span>
+          <strong>Nenhum jogo publicado</strong>
+          <span>Quando a tabela estiver publicada, os placares aparecem aqui.</span>
         </div>
       ) : (
-        Array.from(groupedPredictions.entries()).map(([phase, predictions]) => (
+        Array.from(groupedMatches.entries()).map(([phase, phaseMatches]) => (
           <div className="public-prediction-section" key={phase}>
             <div className="schedule-day-head">
               <h3>{phaseLabels[phase as keyof typeof phaseLabels]}</h3>
-              <span className="meta">{predictions.length} jogos</span>
+              <span className="meta">{phaseMatches.length} jogos</span>
             </div>
             <div className="schedule-day-matches">
-              {predictions.map((prediction) => (
-                <div className="comparison-row public-prediction-row" key={prediction.id}>
-                  <span className="name">
-                    <strong>
-                      Jogo {prediction.match.matchNumber} •{" "}
-                      {formatBrazilDate(prediction.match.kickoffAt)}
-                    </strong>
-                    <span>
-                      {formatBrazilTime(prediction.match.kickoffAt)} •{" "}
-                      {statusLabels[prediction.match.status]}
-                    </span>
-                  </span>
-                  <span className="name">
-                    <strong>
-                      {teamName(
-                        prediction.match.homeTeam,
-                        prediction.match.homePlaceholder,
-                        "after",
-                      )}{" "}
-                      x{" "}
-                      {teamName(
-                        prediction.match.awayTeam,
-                        prediction.match.awayPlaceholder,
-                        "before",
-                      )}
-                    </strong>
-                    <span>Oficial: {officialScoreForMatch(prediction.match)}</span>
-                  </span>
-                  <span className="schedule-score">
-                    {prediction.homeGoals} x {prediction.awayGoals}
-                  </span>
-                </div>
-              ))}
+              {phaseMatches.map((match) => {
+                const prediction = predictionsByMatch.get(match.id);
+
+                return (
+                  <div className="comparison-row public-prediction-row" key={match.id}>
+                    <PredictionMatchSummary match={match} />
+                    <span className="schedule-score">{scoreLabel(prediction)}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))
@@ -266,18 +269,19 @@ function PredictionDetailCard({
 
 function SignedInComparison({
   currentData,
+  matches,
   selectedData,
   selectedUser,
 }: {
   currentData: PredictionData;
+  matches: PredictionMatch[];
   selectedData: PredictionData;
-  selectedUser: SubmittedUser;
+  selectedUser: PredictionUser;
 }) {
   const currentByMatch = predictionByMatchId(currentData.matchPredictions);
   const selectedByMatch = predictionByMatchId(selectedData.matchPredictions);
   const currentPlacements = placementByKind(currentData.placementPredictions);
   const selectedPlacements = placementByKind(selectedData.placementPredictions);
-  const matches = comparisonMatches(currentData.matchPredictions, selectedData.matchPredictions);
   const hasPredictions =
     matches.length > 0 ||
     placementKinds.some(
@@ -288,7 +292,9 @@ function SignedInComparison({
     <section className="card prediction-comparison-card">
       <div className="card-head">
         <div>
-          <h2>Você x {selectedUser.displayName}</h2>
+          <h2>
+            Você x <UserIdentity avatarSize="md" user={selectedUser} />
+          </h2>
           <span className="meta">Comparativo lado a lado</span>
         </div>
         <span className="meta">{matches.length} jogos</span>
@@ -297,16 +303,33 @@ function SignedInComparison({
       {!hasPredictions ? (
         <div className="empty-state">
           <strong>Nenhum palpite confirmado para comparar</strong>
-          <span>Quando houver envios confirmados, o comparativo aparece aqui.</span>
+          <span>Quando a tabela estiver publicada, o comparativo aparece aqui.</span>
         </div>
       ) : (
         <>
           <div className="dual-placement-grid" aria-label="Comparativo de campeões">
+            <div className="dual-placement-row dual-placement-heading">
+              <span>Palpite</span>
+              <span className="comparison-lane-heading comparison-cell-current">Você</span>
+              <span className="comparison-lane-heading comparison-cell-selected">
+                {selectedUser.displayName}
+              </span>
+            </div>
             {placementKinds.map((placement) => (
               <div className="dual-placement-row" key={placement}>
                 <strong>{placementLabels[placement]}</strong>
-                <span>{placementText(currentPlacements.get(placement))}</span>
-                <span>{placementText(selectedPlacements.get(placement))}</span>
+                <span
+                  className="comparison-cell comparison-cell-current"
+                  data-player="Você"
+                >
+                  {placementText(currentPlacements.get(placement))}
+                </span>
+                <span
+                  className="comparison-cell comparison-cell-selected"
+                  data-player={selectedUser.displayName}
+                >
+                  {placementText(selectedPlacements.get(placement))}
+                </span>
               </div>
             ))}
           </div>
@@ -314,26 +337,26 @@ function SignedInComparison({
           <div className="dual-prediction-table" aria-label="Comparativo de placares">
             <div className="dual-prediction-row dual-prediction-heading">
               <span>Jogo</span>
-              <span>Você</span>
-              <span>{selectedUser.displayName}</span>
+              <span className="comparison-lane-heading comparison-cell-current">Você</span>
+              <span className="comparison-lane-heading comparison-cell-selected">
+                {selectedUser.displayName}
+              </span>
             </div>
             {matches.map((match) => (
               <div className="dual-prediction-row" key={match.id}>
-                <span className="name">
-                  <strong>
-                    Jogo {match.matchNumber} • {formatBrazilDate(match.kickoffAt)}
-                  </strong>
-                  <span>
-                    {formatBrazilTime(match.kickoffAt)} • {statusLabels[match.status]}
-                  </span>
-                  <span>
-                    {teamName(match.homeTeam, match.homePlaceholder, "after")} x{" "}
-                    {teamName(match.awayTeam, match.awayPlaceholder, "before")}
-                  </span>
-                  <span>Oficial: {officialScoreForMatch(match)}</span>
+                <PredictionMatchSummary match={match} />
+                <span
+                  className="schedule-score comparison-cell comparison-cell-current"
+                  data-player="Você"
+                >
+                  {scoreLabel(currentByMatch.get(match.id))}
                 </span>
-                <span className="schedule-score">{scoreLabel(currentByMatch.get(match.id))}</span>
-                <span className="schedule-score">{scoreLabel(selectedByMatch.get(match.id))}</span>
+                <span
+                  className="schedule-score comparison-cell comparison-cell-selected"
+                  data-player={selectedUser.displayName}
+                >
+                  {scoreLabel(selectedByMatch.get(match.id))}
+                </span>
               </div>
             ))}
           </div>
@@ -349,7 +372,10 @@ export default async function PublicPredictionsPage({
   const params = (await searchParams) ?? {};
   const currentUser = await getCurrentUser();
   const signedInPlayer = currentUser?.role === "player" ? currentUser : null;
-  const users = await getSubmittedUsers();
+  const [users, matches] = await Promise.all([
+    getPredictionUsers(),
+    getPublishedPredictionMatches(),
+  ]);
   const selectedUser =
     users.find((user) => user.id === params.usuario) ??
     users.find((user) => user.id !== signedInPlayer?.id) ??
@@ -384,10 +410,10 @@ export default async function PublicPredictionsPage({
       <section className="matches-header">
         <div>
           <span className="chip">Palpites públicos</span>
-          <h1>Comparar</h1>
+          <h1>Palpites</h1>
           <p>
-            Veja os palpites de quem já confirmou o envio. Rascunhos não
-            aparecem aqui.
+            Veja todos os jogadores do bolão. Rascunhos não aparecem aqui, e
+            placares em branco indicam palpites ainda não confirmados.
           </p>
         </div>
         <div className="match-count">
@@ -401,25 +427,25 @@ export default async function PublicPredictionsPage({
           <aside className="card prediction-user-list">
             <div className="card-head">
               <h2>Jogadores</h2>
-              <span className="meta">{users.length} com envio</span>
+              <span className="meta">{users.length} ativos</span>
             </div>
             {users.length === 0 ? (
               <div className="empty-state">
-                <strong>Ninguém confirmou ainda</strong>
-                <span>Quando os jogadores confirmarem, os nomes aparecem aqui.</span>
+                <strong>Nenhum jogador ativo</strong>
+                <span>Quando houver jogadores ativos, os nomes aparecem aqui.</span>
               </div>
             ) : (
-              <nav aria-label="Jogadores com palpites confirmados">
+              <nav aria-label="Jogadores do bolão">
                 {users.map((user) => (
                   <Link
                     aria-current={selectedUser?.id === user.id ? "page" : undefined}
                     href={`/predictions?usuario=${user.id}`}
                     key={user.id}
                   >
-                    <strong>
-                      {user.displayName}
-                      {signedInPlayer?.id === user.id ? " (você)" : ""}
-                    </strong>
+                    <UserIdentity
+                      suffix={signedInPlayer?.id === user.id ? " (você)" : ""}
+                      user={user}
+                    />
                   </Link>
                 ))}
               </nav>
@@ -435,16 +461,17 @@ export default async function PublicPredictionsPage({
             signedInPredictionData ? (
               <SignedInComparison
                 currentData={signedInPredictionData}
+                matches={matches}
                 selectedData={predictionData}
                 selectedUser={selectedUser}
               />
             ) : (
-              <PredictionDetailCard data={predictionData} user={selectedUser} />
+              <PredictionDetailCard data={predictionData} matches={matches} user={selectedUser} />
             )
           ) : (
             <article className="card empty-state">
-              <strong>Nenhum palpite enviado</strong>
-              <span>Esta área fica em branco até alguém confirmar palpites.</span>
+              <strong>Nenhum jogador ativo</strong>
+              <span>Esta área fica em branco até alguém entrar no bolão.</span>
             </article>
           )}
         </div>

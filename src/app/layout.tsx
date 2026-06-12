@@ -90,13 +90,12 @@ export default async function RootLayout({
                 <section className="footer-group">
                   <h2>Bolão</h2>
                   <Link href="/">Início</Link>
-                  <Link href="/#ranking">Ranking</Link>
+                  <Link href="/ranking">Ranking</Link>
                   <Link href="/matches">Jogos</Link>
                   <Link href="/rules">Regras</Link>
                 </section>
                 <section className="footer-group">
                   <h2>Palpites</h2>
-                  <Link href="/predictions">Comparar</Link>
                   <Link href="/predictions/group">Fase de grupos</Link>
                   <Link href="/predictions/winners">Campeões</Link>
                 </section>

@@ -1,13 +1,21 @@
 import Link from "next/link";
 
+import { AdminNotice } from "@/components/admin-notice";
+import { UserIdentity } from "@/components/user-avatar";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
+import { PasswordResetLinkButton } from "./password-reset-link-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
+type AdminUsersPageProps = {
+  searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
+};
+
+export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
   await requireAdminPage();
+  const { aviso, erro, mensagem } = (await searchParams) ?? {};
   const users = await prisma.user.findMany({
     include: {
       predictionSubmissions: true,
@@ -22,6 +30,7 @@ export default async function AdminUsersPage() {
         <div><span className="chip">Admin</span><h1>Usuários</h1><p>Criação, status, papel e suporte de acesso.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
+      <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
       <section className="card admin-actions">
         <div className="card-head"><h2>Novo usuário</h2><span className="meta">Senha temporária</span></div>
         <form className="admin-form-grid" action="/api/admin/users" method="post">
@@ -36,7 +45,9 @@ export default async function AdminUsersPage() {
         {users.map((user) => (
           <article className="card" key={user.id}>
             <div className="card-head">
-              <h2>{user.displayName}</h2>
+              <h2>
+                <UserIdentity avatarSize="md" user={user} />
+              </h2>
               <span className="meta">{user.email ?? "Email não definido"} • {user.status}</span>
             </div>
             <form className="admin-form-grid" action={`/api/admin/users/${user.id}`} method="post">
@@ -51,6 +62,7 @@ export default async function AdminUsersPage() {
                 Criado em {formatAdminDate(user.createdAt)}. {user.predictionSubmissions.length} envios, {user._count.matchPredictions} palpites de jogos, {user._count.placementPredictions} palpites finais, {user._count.sessions} sessões.
               </span>
             </div>
+            <PasswordResetLinkButton userId={user.id} />
           </article>
         ))}
       </section>

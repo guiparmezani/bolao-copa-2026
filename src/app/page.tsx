@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { TeamFlag, TeamLabel } from "@/components/team-flag";
+import { UserIdentity } from "@/components/user-avatar";
 import {
   formatBrazilDate,
   formatBrazilTime,
   phaseLabels,
-  statusLabels,
 } from "@/lib/tournament";
 import { prisma } from "@/lib/prisma";
 
@@ -26,13 +27,82 @@ async function getNextMatches(now: Date) {
   });
 }
 
-async function getFeaturedLiveMatch() {
+async function getLatestFinishedMatches() {
+  return prisma.match.findMany({
+    where: {
+      awayGoals: {
+        not: null,
+      },
+      homeGoals: {
+        not: null,
+      },
+      publicationStatus: "published",
+      status: "finished",
+    },
+    include: {
+      awayTeam: true,
+      homeTeam: true,
+    },
+    orderBy: [{ kickoffAt: "desc" }, { matchNumber: "desc" }],
+    take: 2,
+  });
+}
+
+async function getSpotlightNextMatch(latestFinishedMatch: HomeMatch | null, now: Date) {
+  if (!latestFinishedMatch) {
+    const nextScheduledMatch = await prisma.match.findFirst({
+      where: {
+        OR: [{ homeGoals: null }, { awayGoals: null }],
+        kickoffAt: {
+          gte: now,
+        },
+        publicationStatus: "published",
+      },
+      include: {
+        awayTeam: true,
+        homeTeam: true,
+      },
+      orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
+    });
+
+    if (nextScheduledMatch) {
+      return nextScheduledMatch;
+    }
+
+    return prisma.match.findFirst({
+      where: {
+        OR: [{ homeGoals: null }, { awayGoals: null }],
+        publicationStatus: "published",
+      },
+      include: {
+        awayTeam: true,
+        homeTeam: true,
+      },
+      orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
+    });
+  }
+
   return prisma.match.findFirst({
     where: {
+      OR: [
+        {
+          kickoffAt: {
+            gt: latestFinishedMatch.kickoffAt,
+          },
+        },
+        {
+          kickoffAt: latestFinishedMatch.kickoffAt,
+          matchNumber: {
+            gt: latestFinishedMatch.matchNumber,
+          },
+        },
+      ],
+      AND: [
+        {
+          OR: [{ homeGoals: null }, { awayGoals: null }],
+        },
+      ],
       publicationStatus: "published",
-      status: {
-        in: ["live", "paused"],
-      },
     },
     include: {
       awayTeam: true,
@@ -46,8 +116,8 @@ type HomeMatch = Awaited<ReturnType<typeof getNextMatches>>[number];
 
 function getTeamLabel(team: HomeMatch["homeTeam"], placeholder: string | null) {
   return team
-    ? { flag: team.flagEmoji, name: team.namePt }
-    : { flag: "", name: placeholder ?? "A definir" };
+    ? { name: team.namePt, team }
+    : { name: placeholder ?? "A definir", team: null };
 }
 
 function getTeamName(
@@ -59,9 +129,7 @@ function getTeamName(
     return placeholder ?? "A definir";
   }
 
-  return flagPosition === "after"
-    ? `${team.namePt} ${team.flagEmoji}`
-    : `${team.flagEmoji} ${team.namePt}`;
+  return <TeamLabel flagPosition={flagPosition} team={team} />;
 }
 
 function getScore(match: Pick<HomeMatch, "homeGoals" | "awayGoals">) {
@@ -89,18 +157,59 @@ function formatUpdatedAt(value: Date) {
   }).format(value);
 }
 
+function MatchSpotlight({
+  label,
+  match,
+  scoreContext,
+}: {
+  label: string;
+  match: HomeMatch | null;
+  scoreContext: string;
+}) {
+  return (
+    <div className="feature-match">
+      <span className="feature-match-label">{label}</span>
+      {match ? (
+        <>
+          <div className="teams">
+            {(() => {
+              const home = getTeamLabel(match.homeTeam, match.homePlaceholder);
+              const away = getTeamLabel(match.awayTeam, match.awayPlaceholder);
+
+              return (
+                <>
+                  <span className="team">
+                    <strong>{home.name}</strong>
+                    <TeamFlag team={home.team} />
+                  </span>
+                  <span className="score">{getScore(match)}</span>
+                  <span className="team">
+                    <TeamFlag team={away.team} />
+                    <strong>{away.name}</strong>
+                  </span>
+                </>
+              );
+            })()}
+          </div>
+          <span className="meta">
+            {phaseLabels[match.phase]} • {formatBrazilDate(match.kickoffAt)} •{" "}
+            {formatBrazilTime(match.kickoffAt)} • {scoreContext}
+          </span>
+        </>
+      ) : (
+        <div className="empty-state compact-feature-empty">
+          <strong>Nenhum jogo disponível</strong>
+          <span>Assim que houver dados publicados, esta área será atualizada.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function Home() {
   const now = new Date();
-  const [
-    featuredMatch,
-    leaderboard,
-    nextMatches,
-    publishedMatchCount,
-    groupMatchCount,
-    knockoutMatchCount,
-    activePlayerCount,
-  ] = await Promise.all([
-    getFeaturedLiveMatch(),
+  const [latestFinishedMatches, leaderboard] = await Promise.all([
+    getLatestFinishedMatches(),
     prisma.leaderboardSnapshot.findMany({
       include: {
         user: true,
@@ -113,36 +222,13 @@ export default async function Home() {
         },
       },
     }),
+  ]);
+  const latestFinishedMatch = latestFinishedMatches[0] ?? null;
+  const [spotlightNextMatch, nextMatches] = await Promise.all([
+    getSpotlightNextMatch(latestFinishedMatch, now),
     getNextMatches(now),
-    prisma.match.count({ where: { publicationStatus: "published" } }),
-    prisma.match.count({
-      where: {
-        phase: "group",
-        publicationStatus: "published",
-      },
-    }),
-    prisma.match.count({
-      where: {
-        phase: {
-          not: "group",
-        },
-        publicationStatus: "published",
-      },
-    }),
-    prisma.user.count({
-      where: {
-        role: "player",
-        status: "active",
-      },
-    }),
   ]);
   const latestLeaderboardUpdate = leaderboard[0]?.computedAt;
-  const stats = [
-    { value: publishedMatchCount, label: "jogos publicados" },
-    { value: groupMatchCount, label: "fase de grupos" },
-    { value: knockoutMatchCount, label: "mata-mata" },
-    { value: activePlayerCount, label: "jogadores ativos" },
-  ];
 
   return (
     <main>
@@ -152,7 +238,7 @@ export default async function Home() {
             <h1>Bolão dos Facabundos Copa 2026</h1>
             <p>
               Ranking, calendário e regras em uma experiência direta para
-              acompanhar o bolão e tirar uma grana. Lemos queima a rosca.
+              acompanhar o bolão e tirar uma grana.
             </p>
             <div className="chips">
               <Link className="button primary" href="/signup">
@@ -164,59 +250,27 @@ export default async function Home() {
             </div>
           </div>
 
-          <aside className="card" aria-label="Jogo em destaque">
+          <aside className="card" aria-label="Jogos em destaque">
             <div className="card-head">
-              <h2>Jogo em destaque</h2>
-              <span className={featuredMatch ? "meta live" : "meta"}>
-                {featuredMatch ? statusLabels[featuredMatch.status] : "Sem jogo ao vivo"}
-              </span>
+              <h2>Jogos em destaque</h2>
+              <span className="meta">Resultados e agenda</span>
             </div>
-            {featuredMatch ? (
-              <div className="feature-match">
-                <div className="teams">
-                  {(() => {
-                    const home = getTeamLabel(
-                      featuredMatch.homeTeam,
-                      featuredMatch.homePlaceholder,
-                    );
-                    const away = getTeamLabel(
-                      featuredMatch.awayTeam,
-                      featuredMatch.awayPlaceholder,
-                    );
-
-                    return (
-                      <>
-                        <span className="team">
-                          <strong>{home.name}</strong>
-                          {home.flag ? <span aria-hidden="true">{home.flag}</span> : null}
-                        </span>
-                        <span className="score">{getScore(featuredMatch)}</span>
-                        <span className="team">
-                          {away.flag ? <span aria-hidden="true">{away.flag}</span> : null}
-                          <strong>{away.name}</strong>
-                        </span>
-                      </>
-                    );
-                  })()}
-                </div>
-                <span className="meta">
-                  {phaseLabels[featuredMatch.phase]} •{" "}
-                  {formatBrazilTime(featuredMatch.kickoffAt)} • placar oficial
-                </span>
-              </div>
-            ) : (
-              <div className="empty-state">
-                <strong>Nenhum jogo ao vivo agora</strong>
-                <span>Quando houver placar oficial, ele aparece aqui.</span>
-              </div>
-            )}
-            <div className="metrics">
-              {stats.map((stat) => (
-                <div className="metric" key={stat.label}>
-                  <strong>{stat.value}</strong>
-                  <span>{stat.label}</span>
-                </div>
-              ))}
+            <div className="feature-match-list">
+              <MatchSpotlight
+                label="Último resultado"
+                match={latestFinishedMatches[0] ?? null}
+                scoreContext="resultado oficial"
+              />
+              <MatchSpotlight
+                label="Resultado anterior"
+                match={latestFinishedMatches[1] ?? null}
+                scoreContext="resultado oficial"
+              />
+              <MatchSpotlight
+                label="Próximo jogo"
+                match={spotlightNextMatch}
+                scoreContext="agenda"
+              />
             </div>
           </aside>
         </div>
@@ -247,7 +301,7 @@ export default async function Home() {
                     <div className="row" key={entry.id}>
                       <span className="rank">{entry.rank}</span>
                       <span className="name">
-                        <strong>{entry.user.displayName}</strong>
+                        <UserIdentity user={entry.user} />
                         <span>
                           {entry.exactCount} exatos • {entry.outcomeCount} vencedores
                         </span>

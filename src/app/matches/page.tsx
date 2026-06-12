@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamFlag } from "@/components/team-flag";
 import { prisma } from "@/lib/prisma";
 import {
   formatBrazilDate,
@@ -46,16 +47,16 @@ function getTeamLabel(
 ) {
   if (team) {
     return {
-      flag: team.flagEmoji,
       name: team.namePt,
       placeholder: false,
+      team,
     };
   }
 
   return {
-    flag: "□",
     name: placeholder ?? "A definir",
     placeholder: true,
+    team: null,
   };
 }
 
@@ -220,7 +221,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
                           }
                         >
                           <strong>{home.name}</strong>
-                          <span aria-hidden="true">{home.flag}</span>
+                          <TeamFlag fallback="□" team={home.team} />
                         </span>
                         <span className="schedule-score">{getScore(match)}</span>
                         <span
@@ -230,7 +231,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
                               : "schedule-team away"
                           }
                         >
-                          <span aria-hidden="true">{away.flag}</span>
+                          <TeamFlag fallback="□" team={away.team} />
                           <strong>{away.name}</strong>
                         </span>
                       </div>

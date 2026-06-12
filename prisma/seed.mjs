@@ -9,13 +9,13 @@ const seedDir = path.dirname(fileURLToPath(import.meta.url));
 const providerSource = "openfootball-2026";
 
 const defaultScoringRules = [
-  ["group", 1, 2, 3, 5],
-  ["round_of_32", 1.5, 3, 4.5, 7.5],
-  ["round_of_16", 1.5, 3, 4.5, 7.5],
-  ["quarter_final", 1.5, 3, 4.5, 7.5],
-  ["semi_final", 2, 4, 6, 10],
-  ["third_place", 3, 6, 9, 15],
-  ["final", 3, 6, 9, 15],
+  ["group", 1, 2, 3, 6],
+  ["round_of_32", 1.5, 3, 4.5, 9],
+  ["round_of_16", 1.5, 3, 4.5, 9],
+  ["quarter_final", 1.5, 3, 4.5, 9],
+  ["semi_final", 2, 4, 6, 12],
+  ["third_place", 3, 6, 9, 18],
+  ["final", 3, 6, 9, 18],
 ];
 
 const defaultPlacementBonuses = {
@@ -61,7 +61,7 @@ const teamMeta = {
   Brazil: ["Brasil", "🇧🇷", "BR"],
   Morocco: ["Marrocos", "🇲🇦", "MA"],
   Haiti: ["Haiti", "🇭🇹", "HT"],
-  Scotland: ["Escócia", "🏴", "GB-SCT"],
+  Scotland: ["Escócia", "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}", "GB-SCT"],
   USA: ["Estados Unidos", "🇺🇸", "US"],
   Paraguay: ["Paraguai", "🇵🇾", "PY"],
   Australia: ["Austrália", "🇦🇺", "AU"],
@@ -94,7 +94,7 @@ const teamMeta = {
   "DR Congo": ["RD Congo", "🇨🇩", "CD"],
   Uzbekistan: ["Uzbequistão", "🇺🇿", "UZ"],
   Colombia: ["Colômbia", "🇨🇴", "CO"],
-  England: ["Inglaterra", "🏴", "GB-ENG"],
+  England: ["Inglaterra", "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}", "GB-ENG"],
   Croatia: ["Croácia", "🇭🇷", "HR"],
   Ghana: ["Gana", "🇬🇭", "GH"],
   Panama: ["Panamá", "🇵🇦", "PA"],

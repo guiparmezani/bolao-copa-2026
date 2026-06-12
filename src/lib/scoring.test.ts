@@ -5,24 +5,24 @@ import { defaultScoringRules, scorePrediction } from "./scoring";
 describe("scorePrediction", () => {
   const groupRule = defaultScoringRules.group;
 
-  it("scores an exact group prediction as scoreline plus outcome capped at exact cap", () => {
+  it("scores an exact group prediction as one-team goals plus outcome plus scoreline", () => {
     expect(
       scorePrediction({
         predictedHomeGoals: 2,
-        predictedAwayGoals: 1,
+        predictedAwayGoals: 0,
         actualHomeGoals: 2,
-        actualAwayGoals: 1,
+        actualAwayGoals: 0,
         rule: groupRule,
       }),
     ).toMatchObject({
       pending: false,
-      oneTeamGoalsPoints: 0,
+      oneTeamGoalsPoints: 1,
       outcomePoints: 2,
       scorelinePoints: 3,
-      totalPoints: 5,
+      totalPoints: 6,
       isExact: true,
       isOutcomeCorrect: true,
-      isOneTeamGoalsCorrect: false,
+      isOneTeamGoalsCorrect: true,
     });
   });
 
@@ -95,7 +95,7 @@ describe("scorePrediction", () => {
         actualAwayGoals: 2,
         rule: defaultScoringRules.final,
       }).totalPoints,
-    ).toBe(15);
+    ).toBe(18);
   });
 
   it("returns pending when the recorded match score is missing", () => {
@@ -122,6 +122,6 @@ describe("scorePrediction", () => {
         actualAwayGoals: 1,
         rule: defaultScoringRules.round_of_32,
       }).totalPoints,
-    ).toBe(7.5);
+    ).toBe(9);
   });
 });

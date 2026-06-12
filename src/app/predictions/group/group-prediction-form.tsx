@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { TeamFlag } from "@/components/team-flag";
 
 type PredictionMatch = {
   away: {
@@ -386,7 +387,10 @@ export function GroupPredictionForm({
                       <div className="prediction-score-line">
                         <span className="schedule-team">
                           <strong>{match.home.name}</strong>
-                          <span aria-hidden="true">{match.home.flag}</span>
+                          <TeamFlag
+                            fallback="□"
+                            team={{ flagEmoji: match.home.flag, namePt: match.home.name }}
+                          />
                         </span>
                         <input
                           aria-invalid={hasMatchError || undefined}
@@ -428,7 +432,10 @@ export function GroupPredictionForm({
                           value={value.awayGoals}
                         />
                         <span className="schedule-team away">
-                          <span aria-hidden="true">{match.away.flag}</span>
+                          <TeamFlag
+                            fallback="□"
+                            team={{ flagEmoji: match.away.flag, namePt: match.away.name }}
+                          />
                           <strong>{match.away.name}</strong>
                         </span>
                       </div>

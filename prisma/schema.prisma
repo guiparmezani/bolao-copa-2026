@@ -92,7 +92,12 @@ model User {
   emailVerifiedAt       DateTime?  @map("email_verified_at")
   emailVerificationTokenHash String? @unique @map("email_verification_token_hash")
   emailVerificationTokenExpiresAt DateTime? @map("email_verification_token_expires_at")
+  passwordResetTokenHash String? @unique @map("password_reset_token_hash")
+  passwordResetTokenExpiresAt DateTime? @map("password_reset_token_expires_at")
   displayName           String     @map("display_name")
+  avatarImageDataUrl    String?    @map("avatar_image_data_url") @db.Text
+  avatarImageMimeType   String?    @map("avatar_image_mime_type")
+  avatarImageUpdatedAt  DateTime?  @map("avatar_image_updated_at")
   passwordHash          String     @map("password_hash")
   role                  UserRole   @default(player)
   status                UserStatus @default(active)

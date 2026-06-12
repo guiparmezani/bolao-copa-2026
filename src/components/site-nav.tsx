@@ -11,7 +11,7 @@ type SiteNavProps = {
 
 const navLinks = [
   { href: "/", label: "Início" },
-  { href: "/#ranking", label: "Ranking" },
+  { href: "/ranking", label: "Ranking" },
   { href: "/matches", label: "Jogos" },
   { href: "/predictions", label: "Palpites" },
   { href: "/rules", label: "Regras" },
@@ -62,7 +62,7 @@ export function SiteNav({ accountHref, accountLabel, isAuthenticated }: SiteNavP
         </Link>
 
         <div className="menu">
-          <Link href="/#ranking">Ranking</Link>
+          <Link href="/ranking">Ranking</Link>
           <Link href="/matches">Jogos</Link>
           <Link href="/predictions">Palpites</Link>
           <Link href="/rules">Regras</Link>

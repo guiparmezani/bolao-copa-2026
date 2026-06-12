@@ -40,49 +40,49 @@ export const defaultScoringRules: Record<MatchPhase, ScoringRuleConfig> = {
     oneTeamGoalsPoints: 1,
     outcomePoints: 2,
     scorelinePoints: 3,
-    exactCapPoints: 5,
+    exactCapPoints: 6,
   },
   round_of_32: {
     phase: "round_of_32",
     oneTeamGoalsPoints: 1.5,
     outcomePoints: 3,
     scorelinePoints: 4.5,
-    exactCapPoints: 7.5,
+    exactCapPoints: 9,
   },
   round_of_16: {
     phase: "round_of_16",
     oneTeamGoalsPoints: 1.5,
     outcomePoints: 3,
     scorelinePoints: 4.5,
-    exactCapPoints: 7.5,
+    exactCapPoints: 9,
   },
   quarter_final: {
     phase: "quarter_final",
     oneTeamGoalsPoints: 1.5,
     outcomePoints: 3,
     scorelinePoints: 4.5,
-    exactCapPoints: 7.5,
+    exactCapPoints: 9,
   },
   semi_final: {
     phase: "semi_final",
     oneTeamGoalsPoints: 2,
     outcomePoints: 4,
     scorelinePoints: 6,
-    exactCapPoints: 10,
+    exactCapPoints: 12,
   },
   third_place: {
     phase: "third_place",
     oneTeamGoalsPoints: 3,
     outcomePoints: 6,
     scorelinePoints: 9,
-    exactCapPoints: 15,
+    exactCapPoints: 18,
   },
   final: {
     phase: "final",
     oneTeamGoalsPoints: 3,
     outcomePoints: 6,
     scorelinePoints: 9,
-    exactCapPoints: 15,
+    exactCapPoints: 18,
   },
 };
 
@@ -111,7 +111,6 @@ export function scorePrediction(input: ScorePredictionInput): ScorePredictionRes
   const isOutcomeCorrect =
     outcome(predictedHomeGoals, predictedAwayGoals) === outcome(actualHomeGoals, actualAwayGoals);
   const isOneTeamGoalsCorrect =
-    !isExact &&
     (predictedHomeGoals === actualHomeGoals || predictedAwayGoals === actualAwayGoals);
 
   const scorelinePoints = isExact ? rule.scorelinePoints : 0;
