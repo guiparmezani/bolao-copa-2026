@@ -35,7 +35,6 @@ export function PlayerSidebar({ className, user }: SidebarProps) {
       aria-label="Menu do jogador"
     >
       <div className="app-sidebar-heading">
-        <span className="meta">Logado como</span>
         <UserIdentity avatarSize="md" user={user} />
       </div>
       <hr className="app-sidebar-separator" />
@@ -67,7 +66,6 @@ export function AdminAppFrame({ children, user }: AppFrameProps) {
     <div className="app-frame">
       <aside className="app-sidebar" aria-label="Menu administrativo">
         <div className="app-sidebar-heading">
-          <span className="meta">Logado como</span>
           <UserIdentity avatarSize="md" user={user} />
         </div>
         <hr className="app-sidebar-separator" />

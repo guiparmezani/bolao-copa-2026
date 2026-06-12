@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { TeamFlag, TeamLabel } from "@/components/team-flag";
-import { UserIdentity } from "@/components/user-avatar";
+import { TeamFlag } from "@/components/team-flag";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   formatBrazilDate,
   formatBrazilTime,
@@ -9,23 +9,6 @@ import {
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-async function getNextMatches(now: Date) {
-  return prisma.match.findMany({
-    where: {
-      publicationStatus: "published",
-      kickoffAt: {
-        gte: now,
-      },
-    },
-    include: {
-      awayTeam: true,
-      homeTeam: true,
-    },
-    orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
-    take: 3,
-  });
-}
 
 async function getLatestFinishedMatches() {
   return prisma.match.findMany({
@@ -47,6 +30,8 @@ async function getLatestFinishedMatches() {
     take: 2,
   });
 }
+
+type HomeMatch = Awaited<ReturnType<typeof getLatestFinishedMatches>>[number];
 
 async function getSpotlightNextMatch(latestFinishedMatch: HomeMatch | null, now: Date) {
   if (!latestFinishedMatch) {
@@ -112,24 +97,10 @@ async function getSpotlightNextMatch(latestFinishedMatch: HomeMatch | null, now:
   });
 }
 
-type HomeMatch = Awaited<ReturnType<typeof getNextMatches>>[number];
-
 function getTeamLabel(team: HomeMatch["homeTeam"], placeholder: string | null) {
   return team
     ? { name: team.namePt, team }
     : { name: placeholder ?? "A definir", team: null };
-}
-
-function getTeamName(
-  team: HomeMatch["homeTeam"],
-  placeholder: string | null,
-  flagPosition: "before" | "after",
-) {
-  if (!team) {
-    return placeholder ?? "A definir";
-  }
-
-  return <TeamLabel flagPosition={flagPosition} team={team} />;
 }
 
 function getScore(match: Pick<HomeMatch, "homeGoals" | "awayGoals">) {
@@ -224,10 +195,7 @@ export default async function Home() {
     }),
   ]);
   const latestFinishedMatch = latestFinishedMatches[0] ?? null;
-  const [spotlightNextMatch, nextMatches] = await Promise.all([
-    getSpotlightNextMatch(latestFinishedMatch, now),
-    getNextMatches(now),
-  ]);
+  const spotlightNextMatch = await getSpotlightNextMatch(latestFinishedMatch, now);
   const latestLeaderboardUpdate = leaderboard[0]?.computedAt;
 
   return (
@@ -257,6 +225,11 @@ export default async function Home() {
             </div>
             <div className="feature-match-list">
               <MatchSpotlight
+                label="Próximo jogo"
+                match={spotlightNextMatch}
+                scoreContext="agenda"
+              />
+              <MatchSpotlight
                 label="Último resultado"
                 match={latestFinishedMatches[0] ?? null}
                 scoreContext="resultado oficial"
@@ -266,11 +239,6 @@ export default async function Home() {
                 match={latestFinishedMatches[1] ?? null}
                 scoreContext="resultado oficial"
               />
-              <MatchSpotlight
-                label="Próximo jogo"
-                match={spotlightNextMatch}
-                scoreContext="agenda"
-              />
             </div>
           </aside>
         </div>
@@ -278,79 +246,45 @@ export default async function Home() {
 
       <section className="band" aria-label="Prévia pública">
         <div className="home-panels-layout">
-          <div className="home-panels-main">
-            <article className="card" id="ranking">
-              <div className="card-head">
-                <h2>Ranking geral</h2>
-                <span className="meta">
-                  {latestLeaderboardUpdate
-                    ? `Atualizado em ${formatUpdatedAt(latestLeaderboardUpdate)}`
-                    : "Aguardando pontuação"}
-                </span>
-              </div>
-              <div>
-                {leaderboard.length === 0 ? (
-                  <div className="empty-state">
-                    <strong>Ranking ainda vazio</strong>
-                    <span>
-                      Assim que houver pontos calculados, a classificação aparece aqui.
+          <article className="card home-ranking-card" id="ranking">
+            <div className="card-head">
+              <h2>Ranking geral</h2>
+              <span className="meta">
+                {latestLeaderboardUpdate
+                  ? `Atualizado em ${formatUpdatedAt(latestLeaderboardUpdate)}`
+                  : "Aguardando pontuação"}
+              </span>
+            </div>
+            <div>
+              {leaderboard.length === 0 ? (
+                <div className="empty-state">
+                  <strong>Ranking ainda vazio</strong>
+                  <span>
+                    Assim que houver pontos calculados, a classificação aparece aqui.
+                  </span>
+                </div>
+              ) : (
+                leaderboard.map((entry) => (
+                  <div className="row" key={entry.id}>
+                    <span
+                      aria-label={`${entry.rank}º lugar`}
+                      className="rank rank-avatar"
+                      title={`${entry.rank}º lugar`}
+                    >
+                      <UserAvatar user={entry.user} />
                     </span>
-                  </div>
-                ) : (
-                  leaderboard.map((entry) => (
-                    <div className="row" key={entry.id}>
-                      <span className="rank">{entry.rank}</span>
-                      <span className="name">
-                        <UserIdentity user={entry.user} />
-                        <span>
-                          {entry.exactCount} exatos • {entry.outcomeCount} vencedores
-                        </span>
+                    <span className="name">
+                      <strong>{entry.user.displayName}</strong>
+                      <span>
+                        {entry.exactCount} exatos • {entry.outcomeCount} vencedores
                       </span>
-                      <span className="pts">{formatPoints(entry.totalPoints)}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </article>
-
-            <article className="card" id="jogos">
-              <div className="card-head">
-                <h2>Próximos jogos</h2>
-                <span className="meta">Horário de Brasília</span>
-              </div>
-              <div className="matches">
-                {nextMatches.length === 0 ? (
-                  <div className="empty-state">
-                    <strong>Nenhum jogo publicado</strong>
-                    <span>
-                      Quando a tabela estiver disponível, os próximos jogos aparecem aqui.
                     </span>
+                    <span className="pts">{formatPoints(entry.totalPoints)}</span>
                   </div>
-                ) : (
-                  nextMatches.map((match) => (
-                    <div className="match-mini" key={match.id}>
-                      <div className="line">
-                        <span>
-                          {formatBrazilDate(match.kickoffAt)} •{" "}
-                          {formatBrazilTime(match.kickoffAt)}
-                        </span>
-                        <span>{phaseLabels[match.phase]}</span>
-                      </div>
-                      <strong>
-                        {getTeamName(match.homeTeam, match.homePlaceholder, "after")} x{" "}
-                        {getTeamName(match.awayTeam, match.awayPlaceholder, "before")}
-                      </strong>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="info compact-info">
-                <Link className="button" href="/matches">
-                  Ver tabela completa
-                </Link>
-              </div>
-            </article>
-          </div>
+                ))
+              )}
+            </div>
+          </article>
 
           <aside className="home-panels-side">
             <article className="card" id="regras">
@@ -359,7 +293,6 @@ export default async function Home() {
                 <span className="meta">Modelo 2022</span>
               </div>
               <div className="info">
-                <strong>Dois momentos para palpitar</strong>
                 <span>
                   Primeiro entram os placares da fase de grupos. Depois que os
                   confrontos do mata-mata estiverem definidos, abre a segunda
@@ -377,7 +310,6 @@ export default async function Home() {
                 <span className="meta">Conta obrigatória</span>
               </div>
               <div className="info">
-                <strong>Seus palpites ficam protegidos</strong>
                 <span>
                   Depois de entrar, você vê suas telas privadas de envio. A
                   página inicial continua pública e sem dados restritos.

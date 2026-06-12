@@ -168,6 +168,7 @@ async function getRankingRows() {
     exactGroups,
     outcomeGroups,
     oneTeamGoalGroups,
+    pointScoringMatchGroups,
     placementPointsByUser,
   ] = await Promise.all([
     prisma.user.findMany({
@@ -221,6 +222,17 @@ async function getRankingRows() {
         isOneTeamGoalsCorrect: true,
       },
     }),
+    prisma.matchPredictionScore.groupBy({
+      by: ["userId"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        totalPoints: {
+          gt: 0,
+        },
+      },
+    }),
     getPlacementPointsByUser(),
   ]);
 
@@ -228,6 +240,7 @@ async function getRankingRows() {
   const exactCountByUser = groupCountMap(exactGroups);
   const outcomeCountByUser = groupCountMap(outcomeGroups);
   const oneTeamGoalCountByUser = groupCountMap(oneTeamGoalGroups);
+  const pointScoringMatchCountByUser = groupCountMap(pointScoringMatchGroups);
   const rowsWithoutRank = activeUsers.map((user) => {
     const scores = scoreByUser.get(user.id);
     const placementPoints = placementPointsByUser.get(user.id) ?? 0;
@@ -243,7 +256,7 @@ async function getRankingRows() {
       outcomeCount: outcomeCountByUser.get(user.id) ?? 0,
       outcomePoints: decimalToNumber(scores?._sum.outcomePoints),
       placementPoints,
-      scoredMatches: scores?._count._all ?? 0,
+      scoredMatches: pointScoringMatchCountByUser.get(user.id) ?? 0,
       totalPoints: matchPoints + placementPoints,
       userId: user.id,
     };

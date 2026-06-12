@@ -257,6 +257,12 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 - Live leaderboard preview with participant name, total points, exact scores, and last updated time.
 - Public ranking should not expose unclosed predictions.
 
+`/ranking`
+
+- Detailed public ranking table.
+- The `Jogos` column counts only matches where the player scored at least one
+  match point; zero-point scored rows do not count.
+
 `/matches`
 
 - World Cup schedule ordered by date.
