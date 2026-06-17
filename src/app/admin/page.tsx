@@ -77,7 +77,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     <main className="admin-page">
       <section className="matches-header">
         <div>
-          <span className="chip">Admin</span>
           <h1>Painel do bolão</h1>
           <p>
             Operações restritas para {user.displayName}. Todas as mutações

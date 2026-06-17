@@ -6,6 +6,9 @@ import { UserIdentity } from "@/components/user-avatar";
 type SidebarUser = {
   avatarImageDataUrl?: string | null;
   displayName: string;
+  id?: string;
+  role?: string;
+  status?: string;
 };
 
 type AppFrameProps = {

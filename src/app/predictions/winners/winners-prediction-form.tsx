@@ -339,7 +339,6 @@ export function WinnersPredictionForm({
     <>
       <section className="prediction-toolbar">
         <div>
-          <span className="chip">{isConfirmed ? "Confirmado" : isOpen ? "Aberto" : "Encerrado"}</span>
           <h1>Campeão, vice e terceiro</h1>
           <p>
             Escolha as colocações finais. O rascunho pode ser alterado até a

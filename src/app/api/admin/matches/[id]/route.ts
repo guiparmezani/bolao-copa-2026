@@ -28,6 +28,18 @@ function parsePublicationStatus(value: unknown, fallback: PublicationStatus): Pu
   return publicationStatuses.has(stringValue) ? stringValue as PublicationStatus : fallback;
 }
 
+function hasField(data: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(data, key);
+}
+
+function nullableStringField(data: Record<string, unknown>, key: string, fallback: string | null) {
+  return hasField(data, key) ? asNullableString(data[key]) : fallback;
+}
+
+function nullableNumberField(data: Record<string, unknown>, key: string, fallback: number | null) {
+  return hasField(data, key) ? asNumber(data[key]) : fallback;
+}
+
 export async function PATCH(request: NextRequest, context: RouteContext) {
   return updateMatch(request, context);
 }
@@ -51,28 +63,32 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Jogo não encontrado." }, { status: 404 });
   }
 
-  const kickoffAt = asDate(data.kickoffAt);
-  const publicationStatus = parsePublicationStatus(data.publicationStatus, before.publicationStatus);
+  const kickoffAt = hasField(data, "kickoffAt")
+    ? asDate(data.kickoffAt) ?? before.kickoffAt
+    : before.kickoffAt;
+  const publicationStatus = hasField(data, "publicationStatus")
+    ? parsePublicationStatus(data.publicationStatus, before.publicationStatus)
+    : before.publicationStatus;
   const after = await prisma.match.update({
     where: { id },
     data: {
-      kickoffAt: kickoffAt ?? before.kickoffAt,
-      venueName: asNullableString(data.venueName),
-      venueCity: asNullableString(data.venueCity),
-      homePlaceholder: asNullableString(data.homePlaceholder),
-      awayPlaceholder: asNullableString(data.awayPlaceholder),
+      kickoffAt,
+      venueName: nullableStringField(data, "venueName", before.venueName),
+      venueCity: nullableStringField(data, "venueCity", before.venueCity),
+      homePlaceholder: nullableStringField(data, "homePlaceholder", before.homePlaceholder),
+      awayPlaceholder: nullableStringField(data, "awayPlaceholder", before.awayPlaceholder),
       status: parseStatus(data.status, before.status),
       publicationStatus,
       publishedAt: publicationStatus === "published" ? before.publishedAt ?? new Date() : null,
       publishedByUserId: publicationStatus === "published" ? before.publishedByUserId ?? user.id : null,
-      homeGoals: asNumber(data.homeGoals),
-      awayGoals: asNumber(data.awayGoals),
-      homeGoalsFullTime: asNumber(data.homeGoalsFullTime),
-      awayGoalsFullTime: asNumber(data.awayGoalsFullTime),
-      homeGoalsExtraTime: asNumber(data.homeGoalsExtraTime),
-      awayGoalsExtraTime: asNumber(data.awayGoalsExtraTime),
-      homePenalties: asNumber(data.homePenalties),
-      awayPenalties: asNumber(data.awayPenalties),
+      homeGoals: nullableNumberField(data, "homeGoals", before.homeGoals),
+      awayGoals: nullableNumberField(data, "awayGoals", before.awayGoals),
+      homeGoalsFullTime: nullableNumberField(data, "homeGoalsFullTime", before.homeGoalsFullTime),
+      awayGoalsFullTime: nullableNumberField(data, "awayGoalsFullTime", before.awayGoalsFullTime),
+      homeGoalsExtraTime: nullableNumberField(data, "homeGoalsExtraTime", before.homeGoalsExtraTime),
+      awayGoalsExtraTime: nullableNumberField(data, "awayGoalsExtraTime", before.awayGoalsExtraTime),
+      homePenalties: nullableNumberField(data, "homePenalties", before.homePenalties),
+      awayPenalties: nullableNumberField(data, "awayPenalties", before.awayPenalties),
     },
   });
 

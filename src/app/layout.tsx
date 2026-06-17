@@ -7,7 +7,7 @@ import "./globals.css";
 const siteName = "Bolão dos Facabundos Copa 2026";
 const siteDescription =
   "Palpites, ranking e jogos da Copa do Mundo 2026 no Bolão dos Facabundos.";
-const appUrl = process.env.APP_URL?.trim() || "http://localhost:3000";
+const appUrl = process.env.APP_URL?.trim() || "http://localhost:3002";
 
 export const metadata: Metadata = {
   applicationName: siteName,
@@ -102,7 +102,6 @@ export default async function RootLayout({
                 <section className="footer-group">
                   <h2>Conta</h2>
                   <Link href={accountHref}>{accountLabel}</Link>
-                  {!user ? <Link href="/signup">Criar conta</Link> : null}
                   <Link href="/rules">Pontuação</Link>
                 </section>
               </nav>

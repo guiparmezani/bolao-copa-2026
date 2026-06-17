@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -50,10 +49,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Entrar
           </button>
         </form>
-        <div className="auth-switch">
-          <span>Ainda não tem conta?</span>
-          <Link href="/signup">Criar conta</Link>
-        </div>
+        <p className="meta auth-card-note">Cadastro encerrado para novos participantes.</p>
       </section>
     </main>
   );

@@ -136,7 +136,6 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
     <main className="matches-page">
       <section className="matches-header">
         <div>
-          <span className="chip">Tabela publicada</span>
           <h1>Jogos da Copa 2026</h1>
           <p>
             Horários em Brasília, confrontos oficiais publicados e placeholders

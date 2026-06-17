@@ -23,7 +23,7 @@ export default async function AdminScoringPage({ searchParams }: AdminScoringPag
   return (
     <main className="admin-page">
       <section className="matches-header">
-        <div><span className="chip">Admin</span><h1>Pontuação</h1><p>Alterações criam novas versões de regra e devem ser seguidas de recálculo.</p></div>
+        <div><h1>Pontuação</h1><p>Alterações criam novas versões de regra e devem ser seguidas de recálculo.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />

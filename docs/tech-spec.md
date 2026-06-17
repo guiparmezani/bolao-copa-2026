@@ -4,7 +4,7 @@ Last updated: 2026-06-12
 
 ## Purpose
 
-Build a mobile-first web app for a Brazilian World Cup 2026 bolão where users create accounts, submit immutable score predictions, follow the live match schedule, compare predictions against real results, and track the leaderboard.
+Build a mobile-first web app for a Brazilian World Cup 2026 bolão where registered users submit immutable score predictions, follow the live match schedule, compare predictions against real results, and track the leaderboard. Public signup is closed for the active bolão.
 
 Primary product language must be Brazilian Portuguese (`pt-BR`). Code, schema names, database fields, internal comments, and technical documentation can stay in English.
 
@@ -252,16 +252,19 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 - Homepage for `Bolão dos Facabundos 2026`.
 - Brazil football visual theme, mobile-first.
-- Login/signup entry point.
+- Login entry point. Signup is closed after the bolão starts.
 - Featured-games widget shows three compact rows: the two latest finished matches with official scores, then the first published match after the latest result that does not have a scoreboard yet. If no finished match exists yet, it falls back to the next scoreless published match by kickoff time.
 - Live leaderboard preview with participant name, total points, exact scores, and last updated time.
 - Public ranking should not expose unclosed predictions.
 
 `/ranking`
 
-- Detailed public ranking table.
-- The `Jogos` column counts only matches where the player scored at least one
-  match point; zero-point scored rows do not count.
+- Detailed public ranking table. Scoring-method columns (`Gol de um time`,
+  `G/P/Empate`, `Placar exato`, and `Campeões`) show how many
+  times each player scored by that method, while the final `Total` column still
+  shows total points.
+- The `Aproveitamento` column counts only matches where the player scored at
+  least one match point; zero-point scored rows do not count.
 
 `/matches`
 
@@ -280,11 +283,8 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 `/signup`
 
-- Fields: display name, email, password, password confirmation.
-- Email normalization: trim, lowercase, validate email shape.
-- Enforce unique email at DB level.
-- Email is normalized, stored uniquely, and receives an account-confirmation
-  link through Resend when email env vars are configured.
+- Closed-registration notice. The route remains available so old links do not
+  break, but it no longer renders a signup form.
 
 `/login`
 
@@ -332,7 +332,12 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 `/predictions`
 
 - Public `Palpites` viewer.
-- Shows a left-side list of active players.
+- Defaults to a `Jogos` tab with a left-side list of published matches.
+- Selecting a game shows all active players' confirmed predictions for that
+  match; blank scoreboards mean missing or unconfirmed picks.
+- After a finished match has an official score, rows with exact score
+  predictions are visually highlighted.
+- Includes a `Jogadores` tab with a left-side list of active players.
 - Selecting a player shows that player's locked predictions.
 - Drafts never appear here.
 
@@ -940,7 +945,7 @@ Public:
 
 Auth:
 
-- `POST /api/auth/signup`
+- `POST /api/auth/signup` returns 403 while signup is closed.
 - Auth.js route handlers for login/session if using Auth.js.
 
 Authenticated:
@@ -985,7 +990,7 @@ Locked direction:
 - The implementation should match these concepts closely in spacing, density, color, typography scale, card treatment, navigation, and responsive behavior.
 - The homepage must not expose admin-only widgets, user-specific submission status, or login-restricted prediction details.
 - Public homepage sections should be limited to public-facing content such as:
-  - hero and login/signup CTA;
+  - hero and login CTA;
   - public leaderboard;
   - public match schedule/highlight;
   - short explanation of how the bolão works;
@@ -1027,7 +1032,7 @@ Visual direction:
   - off-white surfaces;
   - neutral dark text.
 - Homepage can use a football/Brazil hero image or generated bitmap background.
-- Avoid marketing-only homepage behavior; first viewport should immediately show login/signup and leaderboard.
+- Avoid marketing-only homepage behavior; first viewport should immediately show login and leaderboard.
 
 Flag emoji:
 
@@ -1052,7 +1057,7 @@ Cancelar | Confirmar e travar
 - Passwords: Argon2id, never reversible encryption.
 - Sessions: secure, HTTP-only cookies in production.
 - CSRF protection for mutations.
-- Login/signup rate limiting by IP and email.
+- Login rate limiting by IP and email.
 - Normalize emails and enforce DB uniqueness.
 - Validate prediction deadlines on the server, not only in the UI.
 - Use transaction boundaries for confirmation:
@@ -1106,7 +1111,7 @@ Integration tests:
 
 E2E tests:
 
-- Mobile signup/login.
+- Mobile login.
 - Mobile group prediction confirmation lightbox.
 - Homepage leaderboard.
 - Match schedule filtering.
@@ -1119,7 +1124,7 @@ E2E tests:
    - Base layout, mobile navigation, design tokens.
 
 2. Auth and users - implemented in milestone 2
-   - Signup/login/logout.
+   - Login/logout and closed-signup state for the active bolão.
    - Email uniqueness and password hashing.
    - Admin role seed.
 
@@ -1188,11 +1193,12 @@ Optional:
 
 ## Open Decisions
 
-- Whether to require invite codes later; signup starts open by default.
+- Whether to reopen signup or require invite codes in a future edition; signup
+  is closed for the current bolão.
 
 ## Acceptance Criteria
 
-- Users can create accounts with unique emails and log in.
+- Existing users can log in; new public signup is closed.
 - Users can submit group predictions and cannot alter them after confirmation.
 - Knockout prediction form is unavailable until the knockout fixtures are fully defined.
 - Users can submit knockout predictions and cannot alter them after confirmation.

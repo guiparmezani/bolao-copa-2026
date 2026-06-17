@@ -15,11 +15,9 @@ type RankingRow = {
   avatarImageDataUrl: string | null;
   displayName: string;
   exactCount: number;
-  exactPoints: number;
   oneTeamGoalsCount: number;
-  oneTeamGoalsPoints: number;
   outcomeCount: number;
-  outcomePoints: number;
+  placementCount: number;
   placementPoints: number;
   rank: number;
   scoredMatches: number;
@@ -88,7 +86,7 @@ function getFinalRunnerUpTeamId(match: MatchWithTeams | null) {
   return null;
 }
 
-async function getPlacementPointsByUser() {
+async function getPlacementResultsByUser() {
   const [bonuses, finalMatch, thirdPlaceMatch, placementPredictions] = await Promise.all([
     getPlacementBonuses(),
     prisma.match.findFirst({
@@ -122,20 +120,21 @@ async function getPlacementPointsByUser() {
     runner_up: getFinalRunnerUpTeamId(finalMatch),
     third_place: getWinnerTeamId(thirdPlaceMatch),
   };
-  const pointsByUser = new Map<string, number>();
+  const resultsByUser = new Map<string, { count: number; points: number }>();
 
   for (const prediction of placementPredictions) {
     if (prediction.teamId !== actualTeamByPlacement[prediction.placement]) {
       continue;
     }
 
-    pointsByUser.set(
-      prediction.userId,
-      (pointsByUser.get(prediction.userId) ?? 0) + bonuses[prediction.placement],
-    );
+    const current = resultsByUser.get(prediction.userId) ?? { count: 0, points: 0 };
+    resultsByUser.set(prediction.userId, {
+      count: current.count + 1,
+      points: current.points + bonuses[prediction.placement],
+    });
   }
 
-  return pointsByUser;
+  return resultsByUser;
 }
 
 function groupCountMap(groups: Array<{ _count: { _all: number }; userId: string }>) {
@@ -169,7 +168,7 @@ async function getRankingRows() {
     outcomeGroups,
     oneTeamGoalGroups,
     pointScoringMatchGroups,
-    placementPointsByUser,
+    placementResultsByUser,
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ displayName: "asc" }, { id: "asc" }],
@@ -189,9 +188,6 @@ async function getRankingRows() {
         _all: true,
       },
       _sum: {
-        oneTeamGoalsPoints: true,
-        outcomePoints: true,
-        scorelinePoints: true,
         totalPoints: true,
       },
     }),
@@ -233,7 +229,7 @@ async function getRankingRows() {
         },
       },
     }),
-    getPlacementPointsByUser(),
+    getPlacementResultsByUser(),
   ]);
 
   const scoreByUser = new Map(scoreGroups.map((group) => [group.userId, group]));
@@ -243,21 +239,19 @@ async function getRankingRows() {
   const pointScoringMatchCountByUser = groupCountMap(pointScoringMatchGroups);
   const rowsWithoutRank = activeUsers.map((user) => {
     const scores = scoreByUser.get(user.id);
-    const placementPoints = placementPointsByUser.get(user.id) ?? 0;
+    const placementResults = placementResultsByUser.get(user.id) ?? { count: 0, points: 0 };
     const matchPoints = decimalToNumber(scores?._sum.totalPoints);
 
     return {
       avatarImageDataUrl: user.avatarImageDataUrl,
       displayName: user.displayName,
       exactCount: exactCountByUser.get(user.id) ?? 0,
-      exactPoints: decimalToNumber(scores?._sum.scorelinePoints),
       oneTeamGoalsCount: oneTeamGoalCountByUser.get(user.id) ?? 0,
-      oneTeamGoalsPoints: decimalToNumber(scores?._sum.oneTeamGoalsPoints),
       outcomeCount: outcomeCountByUser.get(user.id) ?? 0,
-      outcomePoints: decimalToNumber(scores?._sum.outcomePoints),
-      placementPoints,
+      placementCount: placementResults.count,
+      placementPoints: placementResults.points,
       scoredMatches: pointScoringMatchCountByUser.get(user.id) ?? 0,
-      totalPoints: matchPoints + placementPoints,
+      totalPoints: matchPoints + placementResults.points,
       userId: user.id,
     };
   });
@@ -278,7 +272,7 @@ async function getRankingRows() {
 }
 
 export default async function RankingPage() {
-  const [rows, latestLeaderboard] = await Promise.all([
+  const [rows, latestLeaderboard, finishedMatchesCount] = await Promise.all([
     getRankingRows(),
     prisma.leaderboardSnapshot.findFirst({
       orderBy: {
@@ -288,22 +282,29 @@ export default async function RankingPage() {
         computedAt: true,
       },
     }),
+    prisma.match.count({
+      where: {
+        awayGoals: { not: null },
+        homeGoals: { not: null },
+        status: "finished",
+      },
+    }),
   ]);
+  const finishedMatchesLabel = finishedMatchesCount === 1 ? "jogo encerrado" : "jogos encerrados";
 
   return (
     <main className="band">
       <section className="matches-header">
         <div>
-          <span className="chip">Classificação</span>
           <h1>Ranking</h1>
           <p>
-            Pontuação detalhada por jogador, separando os pontos por método de
-            acerto e somando tudo na coluna final.
+            Acertos por jogador em cada método de pontuação, com a pontuação
+            total somada na coluna final.
           </p>
         </div>
         <div className="match-count">
-          <strong>{rows.length}</strong>
-          <span>jogadores</span>
+          <strong>{finishedMatchesCount}</strong>
+          <span>{finishedMatchesLabel}</span>
         </div>
       </section>
 
@@ -324,42 +325,52 @@ export default async function RankingPage() {
         ) : (
           <div className="ranking-table-wrap">
             <table className="ranking-table">
+              <colgroup>
+                <col className="ranking-col-position" />
+                <col className="ranking-col-player" />
+                <col className="ranking-col-method" />
+                <col className="ranking-col-outcome" />
+                <col className="ranking-col-method" />
+                <col className="ranking-col-method" />
+                <col className="ranking-col-usage" />
+                <col className="ranking-col-total" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th scope="col">Pos.</th>
+                  <th className="ranking-number-cell" scope="col">Pos.</th>
                   <th scope="col">Jogador</th>
-                  <th scope="col">Gol de um time</th>
-                  <th scope="col">Resultado</th>
-                  <th scope="col">Placar exato</th>
-                  <th scope="col">Campeões</th>
-                  <th scope="col">Jogos</th>
-                  <th scope="col">Total</th>
+                  <th className="ranking-number-cell" scope="col">Gol de um time</th>
+                  <th className="ranking-number-cell" scope="col">G/P/Empate</th>
+                  <th className="ranking-number-cell" scope="col">Placar exato</th>
+                  <th className="ranking-number-cell" scope="col">Campeões</th>
+                  <th className="ranking-number-cell" scope="col">Aproveitamento</th>
+                  <th className="ranking-number-cell" scope="col">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.userId}>
-                    <td className="ranking-position">{row.rank}</td>
+                    <td className="ranking-position ranking-number-cell">{row.rank}</td>
                     <th className="ranking-player" scope="row">
                       <UserIdentity user={row} />
                     </th>
-                    <td>
-                      <strong>{formatPoints(row.oneTeamGoalsPoints)}</strong>
+                    <td className="ranking-number-cell">
+                      <strong>{row.oneTeamGoalsCount}</strong>
                     </td>
-                    <td>
-                      <strong>{formatPoints(row.outcomePoints)}</strong>
+                    <td className="ranking-number-cell">
+                      <strong>{row.outcomeCount}</strong>
                     </td>
-                    <td>
-                      <strong>{formatPoints(row.exactPoints)}</strong>
+                    <td className="ranking-number-cell">
+                      <strong>{row.exactCount}</strong>
                     </td>
-                    <td>
-                      <strong>{formatPoints(row.placementPoints)}</strong>
+                    <td className="ranking-number-cell">
+                      <strong>{row.placementCount}</strong>
                     </td>
-                    <td>
+                    <td className="ranking-number-cell">
                       <strong>{row.scoredMatches}</strong>
                       <span>pontuados</span>
                     </td>
-                    <td className="ranking-total">
+                    <td className="ranking-total ranking-number-cell">
                       <strong>{formatPoints(row.totalPoints)}</strong>
                     </td>
                   </tr>

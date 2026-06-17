@@ -8,6 +8,8 @@ import {
 } from "@/lib/admin/auth";
 import { asString, readRequestData } from "@/lib/admin/forms";
 import { prisma } from "@/lib/prisma";
+import { isBeforeOrAtDeadline } from "@/lib/predictions/deadlines";
+import { getPlacementPredictionDeadline } from "@/lib/predictions/placement";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -58,7 +60,21 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Digite DESBLOQUEAR para abrir este envio." }, { status: 400 });
   }
 
-  const after = await prisma.$transaction(async (tx) => {
+  const placementDeadline = await getPlacementPredictionDeadline();
+  const shouldUnlockPlacement =
+    before.phaseGroup === "group" && isBeforeOrAtDeadline(new Date(), placementDeadline);
+  const linkedPlacementBefore = shouldUnlockPlacement
+    ? await prisma.predictionSubmission.findUnique({
+        where: {
+          userId_phaseGroup: {
+            phaseGroup: "placement",
+            userId: before.userId,
+          },
+        },
+      })
+    : null;
+
+  const { after, linkedPlacementAfter, linkedPlacementUnlocked } = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT set_config('app.admin_override', 'on', true)`;
     await tx.matchPrediction.updateMany({
       where: { submissionId: id },
@@ -69,13 +85,34 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
       data: { confirmedAt: null },
     });
 
-    return tx.predictionSubmission.update({
+    const after = await tx.predictionSubmission.update({
       where: { id },
       data: {
         status: "draft",
         confirmedAt: null,
       },
     });
+
+    let linkedPlacementAfter = null;
+    let linkedPlacementUnlocked = false;
+
+    if (linkedPlacementBefore?.status === "confirmed") {
+      await tx.placementPrediction.updateMany({
+        where: { submissionId: linkedPlacementBefore.id },
+        data: { confirmedAt: null },
+      });
+
+      linkedPlacementAfter = await tx.predictionSubmission.update({
+        where: { id: linkedPlacementBefore.id },
+        data: {
+          confirmedAt: null,
+          status: "draft",
+        },
+      });
+      linkedPlacementUnlocked = true;
+    }
+
+    return { after, linkedPlacementAfter, linkedPlacementUnlocked };
   });
 
   await writeAuditLog({
@@ -83,8 +120,14 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
     action: "submission.unlock",
     targetEntity: "prediction_submission",
     targetId: id,
-    before,
-    after,
+    before: {
+      linkedPlacementSubmission: linkedPlacementBefore,
+      submission: before,
+    },
+    after: {
+      linkedPlacementSubmission: linkedPlacementAfter,
+      submission: after,
+    },
   });
 
   if (shouldRedirectBack(request)) {
@@ -92,9 +135,15 @@ async function updateSubmission(request: NextRequest, context: RouteContext) {
       request,
       "/admin/submissions",
       "mensagem",
-      "Envio desbloqueado. O jogador já pode editar e reenviar os palpites.",
+      linkedPlacementUnlocked
+        ? "Envio desbloqueado. Os palpites de campeões também foram liberados para este jogador."
+        : "Envio desbloqueado. O jogador já pode editar e reenviar os palpites.",
     );
   }
 
-  return Response.json({ ok: true, submission: after });
+  return Response.json({
+    linkedPlacementUnlocked,
+    ok: true,
+    submission: after,
+  });
 }

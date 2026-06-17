@@ -331,7 +331,6 @@ export function GroupPredictionForm({
     <>
       <section className="prediction-toolbar">
         <div>
-          <span className="chip">{isConfirmed ? "Confirmado" : isOpen ? "Aberto" : "Encerrado"}</span>
           <h1>{title}</h1>
           <p>
             {description ??

@@ -23,7 +23,7 @@ export default async function AdminAuditPage() {
   return (
     <main className="admin-page">
       <section className="matches-header">
-        <div><span className="chip">Admin</span><h1>Auditoria</h1><p>Eventos administrativos, syncs e exports operacionais.</p></div>
+        <div><h1>Auditoria</h1><p>Eventos administrativos, syncs e exports operacionais.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <section className="card admin-actions">

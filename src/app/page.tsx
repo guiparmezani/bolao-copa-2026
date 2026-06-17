@@ -209,8 +209,8 @@ export default async function Home() {
               acompanhar o bolão e tirar uma grana.
             </p>
             <div className="chips">
-              <Link className="button primary" href="/signup">
-                Criar conta
+              <Link className="button primary" href="/login">
+                Entrar
               </Link>
               <Link className="button" href="/matches">
                 Ver jogos
@@ -274,7 +274,12 @@ export default async function Home() {
                       <UserAvatar user={entry.user} />
                     </span>
                     <span className="name">
-                      <strong>{entry.user.displayName}</strong>
+                      <Link
+                        className="player-name-link"
+                        href={`/predictions?usuario=${entry.user.id}`}
+                      >
+                        <strong>{entry.user.displayName}</strong>
+                      </Link>
                       <span>
                         {entry.exactCount} exatos • {entry.outcomeCount} vencedores
                       </span>
@@ -314,8 +319,8 @@ export default async function Home() {
                   Depois de entrar, você vê suas telas privadas de envio. A
                   página inicial continua pública e sem dados restritos.
                 </span>
-                <Link className="button primary" href="/signup">
-                  Criar conta ou entrar
+                <Link className="button primary" href="/login">
+                  Entrar
                 </Link>
               </div>
             </article>

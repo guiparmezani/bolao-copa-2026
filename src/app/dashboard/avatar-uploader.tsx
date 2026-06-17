@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ const avatarSize = 256;
 type AvatarUploaderProps = {
   displayName: string;
   initialAvatarImageDataUrl: string | null;
+  userId: string;
 };
 
 function loadImage(file: File) {
@@ -119,6 +121,7 @@ async function saveAvatar(avatarDataUrl: string | null) {
 export function AvatarUploader({
   displayName,
   initialAvatarImageDataUrl,
+  userId,
 }: AvatarUploaderProps) {
   const [avatarImageDataUrl, setAvatarImageDataUrl] = useState(initialAvatarImageDataUrl);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +189,9 @@ export function AvatarUploader({
           user={{ avatarImageDataUrl, displayName }}
         />
         <div className="avatar-uploader-body">
-          <strong>{displayName}</strong>
+          <Link className="player-name-link" href={`/predictions?usuario=${userId}`}>
+            <strong>{displayName}</strong>
+          </Link>
           <span>Use uma imagem quadrada ou uma foto com o rosto centralizado.</span>
           <div className="avatar-actions">
             <label className="button primary">

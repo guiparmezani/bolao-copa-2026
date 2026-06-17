@@ -43,7 +43,6 @@ export default async function RulesPage() {
     <main className="matches-page">
       <section className="matches-header">
         <div>
-          <span className="chip">Regras ativas</span>
           <h1>Como pontua o bolão</h1>
           <p>
             A pontuação vem da configuração ativa do sistema. Palpites de
@@ -51,8 +50,8 @@ export default async function RulesPage() {
             só aparecem quando o jogo termina.
           </p>
         </div>
-        <Link className="button primary" href="/signup">
-          Entrar no bolão
+        <Link className="button primary" href="/login">
+          Entrar
         </Link>
       </section>
 

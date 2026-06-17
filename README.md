@@ -1,8 +1,8 @@
 # Bolao dos Facabundos 2026
 
-Web app for a Brazilian World Cup 2026 bolao. Players create accounts, confirm
-their email, submit locked score predictions, pick champion/runner-up/third
-place, browse submitted predictions, and follow the leaderboard.
+Web app for a Brazilian World Cup 2026 bolao. Registered players log in, submit
+locked score predictions, pick champion/runner-up/third place, browse submitted
+predictions, and follow the leaderboard. Public signup is currently closed.
 
 The app is local-first right now. Production deployment is planned for
 `bolao.parmezani.com`, behind Caddy on the `parmavps` VPS, but
@@ -12,8 +12,8 @@ the repo can be developed and validated fully on a local machine.
 
 - Public homepage, schedule, rules, and submitted-predictions pages. Homepage
   cards render from database data and show empty states instead of sample rows.
-- Signup/login/logout with local session cookies, Argon2id password hashes, and
-  optional Resend-backed account confirmation email.
+- Login/logout with local session cookies and Argon2id password hashes.
+- Signup is currently closed because the bolão has started.
 - Admin-generated, single-use password reset links for account recovery.
 - Authenticated player dashboard and prediction forms in a logged-in sidebar.
 - Player avatar upload from the dashboard, stored as a small validated image on
@@ -66,7 +66,7 @@ npm run dev
 Open:
 
 ```text
-http://localhost:3000
+http://localhost:3002
 ```
 
 The default `.env.example` creates a local admin during seed:
@@ -86,7 +86,7 @@ Local development uses `.env`.
 Required:
 
 ```env
-DATABASE_URL="postgresql://bolao:bolao_dev_password@localhost:5432/bolao_copa_2026?schema=public"
+DATABASE_URL="postgresql://bolao:bolao_dev_password@localhost:5433/bolao_copa_2026?schema=public"
 ```
 
 Recommended for local admin seed:
@@ -100,7 +100,7 @@ ADMIN_PASSWORD="troque-esta-senha-local"
 Optional transactional email through Resend:
 
 ```env
-APP_URL="http://localhost:3000"
+APP_URL="http://localhost:3002"
 EMAIL_FROM="Bolão dos Facabundos <noreply@example.com>"
 RESEND_API_KEY=""
 ```
@@ -134,6 +134,9 @@ Start local Postgres:
 ```bash
 docker compose up -d
 ```
+
+The local Postgres container publishes host port `5433` to avoid colliding with
+other local apps that use `5432`.
 
 Validate Prisma schema:
 
@@ -194,9 +197,9 @@ Public:
 - `/ranking`
 - `/matches`
 - `/rules`
-- `/predictions` public viewer of active players and confirmed predictions
+- `/predictions` public viewer of confirmed predictions by game or player
 - `/login`
-- `/signup`
+- `/signup` closed-registration notice
 - `/reset-password?token=...`
 
 Authenticated:
@@ -229,9 +232,10 @@ Users can edit drafts until they confirm or the deadline closes. Confirmed
 prediction rows are protected by database triggers. Admin unlocks use an audited
 override path and should be treated as exceptional support operations.
 
-The public `Palpites` page lists active players, shows confirmed predictions,
-and leaves blanks for unconfirmed or missing picks. Admin users cannot create
-prediction submissions.
+The public `Palpites` page opens on a game-first comparison tab and can also
+switch to a player-first tab. It lists active players, shows confirmed
+predictions, and leaves blanks for unconfirmed or missing picks. Admin users
+cannot create prediction submissions.
 
 ## Useful Commands
 
@@ -299,10 +303,10 @@ npm audit --omit=dev
 For route smoke tests with the dev server running:
 
 ```bash
-curl -I http://localhost:3000
-curl -I http://localhost:3000/matches
-curl -I http://localhost:3000/rules
-curl -I http://localhost:3000/predictions
+curl -I http://localhost:3002
+curl -I http://localhost:3002/matches
+curl -I http://localhost:3002/rules
+curl -I http://localhost:3002/predictions
 ```
 
 Admin pages require login as an admin user.

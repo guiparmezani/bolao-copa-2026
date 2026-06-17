@@ -114,6 +114,24 @@ body {
   overflow-wrap: anywhere;
 }
 
+.user-identity-link,
+.player-name-link {
+  border-radius: 6px;
+  outline: none;
+}
+
+.user-identity-link:hover .user-identity-name,
+.user-identity-link:focus-visible .user-identity-name,
+.player-name-link:hover,
+.player-name-link:focus-visible {
+  color: var(--yellow);
+}
+
+.user-identity-link:focus-visible,
+.player-name-link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(243, 197, 59, 0.28);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -783,6 +801,11 @@ h3 {
 .dashboard-header h1 {
   margin-top: 6px;
   font-size: 2.3rem;
+}
+
+.auth-card-note {
+  margin: 0;
+  padding: 0 16px 16px;
 }
 
 .form {
@@ -1657,6 +1680,82 @@ h3 {
   font-weight: 800;
 }
 
+.prediction-tabs {
+  display: inline-flex;
+  width: min(260px, 100%);
+  max-width: 100%;
+  margin: -4px 0 16px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.prediction-tabs a {
+  min-width: 112px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 950;
+  text-align: center;
+}
+
+.prediction-tabs a:hover,
+.prediction-tabs a:focus-visible {
+  color: var(--yellow);
+}
+
+.prediction-tabs a[aria-current="page"] {
+  background: var(--button-bg);
+  color: var(--text);
+}
+
+.prediction-game-link,
+.prediction-game-heading {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.prediction-game-link span,
+.prediction-game-heading span {
+  color: var(--text);
+  font-size: inherit;
+  font-weight: 950;
+}
+
+.prediction-game-link {
+  line-height: 1.2;
+}
+
+.prediction-game-team {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prediction-game-versus {
+  color: var(--yellow) !important;
+}
+
+.prediction-game-score {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(243, 197, 59, 0.42);
+  border-radius: 8px;
+  background: rgba(243, 197, 59, 0.14);
+  padding: 4px 10px;
+  color: var(--yellow);
+  font-size: 0.95rem;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .prediction-detail-list {
   min-width: 0;
 }
@@ -1683,6 +1782,19 @@ h3 {
 .dual-placement-row:first-child,
 .dual-prediction-row:first-child {
   border-top: 0;
+}
+
+.next-result-row {
+  position: relative;
+  border-color: rgba(243, 197, 59, 0.42);
+  background:
+    linear-gradient(90deg, rgba(243, 197, 59, 0.16), rgba(16, 166, 106, 0.05)),
+    rgba(8, 25, 22, 0.76);
+  box-shadow: inset 4px 0 0 var(--yellow);
+}
+
+.next-result-row:first-child {
+  border-top-color: rgba(243, 197, 59, 0.42);
 }
 
 .dual-placement-row {
@@ -1718,6 +1830,7 @@ h3 {
 }
 
 .comparison-lane-heading {
+  background: transparent;
   color: var(--text);
   font-size: 0.78rem;
   font-weight: 950;
@@ -1732,6 +1845,115 @@ h3 {
 
 .schedule-score.comparison-cell-selected {
   background: rgba(243, 197, 59, 0.11);
+}
+
+.game-comparison-card {
+  overflow: hidden;
+}
+
+.my-game-prediction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(16, 166, 106, 0.12);
+}
+
+.my-game-prediction span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.my-game-prediction strong {
+  color: var(--yellow);
+  font-size: 1.15rem;
+}
+
+.game-prediction-table {
+  display: grid;
+}
+
+.game-prediction-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(112px, 0.34fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.game-prediction-row:first-child {
+  border-top: 0;
+}
+
+.game-prediction-table.no-comparison .game-prediction-row {
+  grid-template-columns: minmax(0, 1fr) 92px;
+}
+
+.game-prediction-row.is-current-user {
+  background: rgba(16, 166, 106, 0.11);
+  box-shadow: inset 4px 0 0 var(--green);
+}
+
+.game-prediction-row.is-exact-result {
+  border-color: rgba(243, 197, 59, 0.48);
+  background:
+    linear-gradient(90deg, rgba(243, 197, 59, 0.18), rgba(16, 166, 106, 0.08)),
+    rgba(8, 25, 22, 0.82);
+  box-shadow: inset 4px 0 0 var(--yellow);
+}
+
+.game-prediction-row.is-exact-result:first-child {
+  border-top-color: rgba(243, 197, 59, 0.48);
+}
+
+.game-prediction-row.is-exact-result .schedule-score {
+  border-color: rgba(243, 197, 59, 0.58);
+  background: rgba(243, 197, 59, 0.18);
+  color: var(--yellow);
+}
+
+.prediction-compare-status {
+  min-width: 0;
+  display: inline-flex;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 9px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.prediction-compare-status.is-match {
+  border-color: rgba(16, 166, 106, 0.42);
+  background: rgba(16, 166, 106, 0.14);
+  color: #7ee0a7;
+}
+
+.prediction-compare-status.is-result {
+  border-color: rgba(243, 197, 59, 0.42);
+  background: rgba(243, 197, 59, 0.13);
+  color: var(--yellow);
+}
+
+.prediction-compare-status.is-different {
+  border-color: rgba(255, 113, 113, 0.34);
+  background: rgba(255, 113, 113, 0.11);
+  color: #ffb4b4;
+}
+
+.prediction-compare-status.is-empty {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
 }
 
 .dual-prediction-row {
@@ -1782,6 +2004,21 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.next-result-badge {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(243, 197, 59, 0.46);
+  border-radius: 999px;
+  background: rgba(243, 197, 59, 0.14);
+  padding: 0 8px;
+  color: var(--yellow);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .public-matchup {
   min-width: 0;
   display: flex;
@@ -1814,8 +2051,33 @@ h3 {
 
 .ranking-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1206px;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ranking-col-position {
+  width: 66px;
+}
+
+.ranking-col-player {
+  width: 280px;
+}
+
+.ranking-col-method {
+  width: 132px;
+}
+
+.ranking-col-outcome {
+  width: 196px;
+}
+
+.ranking-col-usage {
+  width: 150px;
+}
+
+.ranking-col-total {
+  width: 118px;
 }
 
 .ranking-table th,
@@ -1859,6 +2121,10 @@ h3 {
   white-space: nowrap;
 }
 
+.ranking-table .ranking-number-cell {
+  text-align: center;
+}
+
 .ranking-position {
   width: 70px;
   color: var(--yellow);
@@ -1867,14 +2133,17 @@ h3 {
 }
 
 .ranking-player {
-  width: 260px;
   color: var(--text);
   font-weight: 950;
-  overflow-wrap: anywhere;
 }
 
 .ranking-player .user-identity {
   display: flex;
+}
+
+.ranking-player .user-identity-name {
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .ranking-total {
@@ -1990,10 +2259,130 @@ h3 {
 
 .admin-match-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  gap: 14px;
   padding: 14px;
   border-bottom: 1px solid var(--line);
+}
+
+.admin-score-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(243, 197, 59, 0.45);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(243, 197, 59, 0.18), rgba(22, 134, 74, 0.1)),
+    rgba(8, 25, 22, 0.78);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2);
+}
+
+.admin-score-context {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-score-context .eyebrow {
+  color: var(--yellow);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-score-context strong {
+  color: var(--text);
+  font-size: clamp(1.05rem, 2vw, 1.45rem);
+  line-height: 1.15;
+}
+
+.admin-score-context span:last-child {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.admin-score-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-score-side {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.admin-score-team {
+  max-width: 100%;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 950;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-score-input {
+  width: 88px;
+  min-height: 64px;
+  border-color: rgba(243, 197, 59, 0.72);
+  background: rgba(4, 14, 12, 0.92);
+  color: var(--yellow);
+  font-size: 1.8rem;
+  font-weight: 950;
+  text-align: center;
+}
+
+.admin-score-separator {
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 1.3rem;
+  font-weight: 950;
+}
+
+.admin-match-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.admin-match-fields-compact {
+  grid-template-columns: minmax(180px, 260px);
+}
+
+.admin-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-override-panel {
+  padding: 12px 14px;
+  background: rgba(8, 25, 22, 0.5);
+}
+
+.admin-override-panel summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.admin-override-panel summary:hover,
+.admin-override-panel[open] summary {
+  color: var(--yellow);
 }
 
 .admin-confirm-form {
@@ -2001,7 +2390,38 @@ h3 {
   flex-wrap: wrap;
   gap: 10px;
   align-items: end;
-  padding: 14px;
+  padding: 12px 0 2px;
+}
+
+@media (max-width: 700px) {
+  .admin-score-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-form-footer {
+    align-items: stretch;
+  }
+
+  .admin-form-footer .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-score-board {
+    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .admin-score-input {
+    width: 72px;
+    min-height: 58px;
+    font-size: 1.5rem;
+  }
+
+  .admin-score-separator {
+    min-height: 58px;
+  }
 }
 
 .site-footer {
@@ -2350,6 +2770,30 @@ h3 {
 
   .public-prediction-row .schedule-score {
     width: min(120px, 100%);
+    justify-self: start;
+  }
+
+  .prediction-tabs {
+    width: 100%;
+  }
+
+  .prediction-tabs a {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .game-prediction-row {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    align-items: start;
+  }
+
+  .game-prediction-row .schedule-score {
+    width: 72px;
+    min-height: 40px;
+  }
+
+  .prediction-compare-status {
+    grid-column: 1 / -1;
     justify-self: start;
   }
 

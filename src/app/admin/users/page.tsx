@@ -27,7 +27,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   return (
     <main className="admin-page">
       <section className="matches-header">
-        <div><span className="chip">Admin</span><h1>Usuários</h1><p>Criação, status, papel e suporte de acesso.</p></div>
+        <div><h1>Usuários</h1><p>Criação, status, papel e suporte de acesso.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />

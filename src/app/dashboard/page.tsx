@@ -68,7 +68,6 @@ export default async function DashboardPage() {
       <main className="dashboard-page">
       <section className="dashboard-header">
         <div>
-          <span className="chip">Área protegida</span>
           <h1>
             Olá, <UserIdentity avatarSize="md" user={user} />
           </h1>
@@ -83,6 +82,7 @@ export default async function DashboardPage() {
         <AvatarUploader
           displayName={user.displayName}
           initialAvatarImageDataUrl={user.avatarImageDataUrl}
+          userId={user.id}
         />
 
         <article className="card">

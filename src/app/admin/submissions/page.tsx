@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminNotice } from "@/components/admin-notice";
+import { UserIdentity } from "@/components/user-avatar";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
@@ -35,7 +36,7 @@ export default async function AdminSubmissionsPage({
   return (
     <main className="admin-page">
       <section className="matches-header">
-        <div><span className="chip">Admin</span><h1>Envios</h1><p>Status de envio por jogador e suporte auditado.</p></div>
+        <div><h1>Envios</h1><p>Status de envio por jogador e suporte auditado.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
@@ -43,7 +44,9 @@ export default async function AdminSubmissionsPage({
         {submissions.map((submission) => (
           <article className="card" key={submission.id}>
             <div className="card-head">
-              <h2>{submission.user.displayName}</h2>
+              <h2>
+                <UserIdentity avatarSize="md" user={submission.user} />
+              </h2>
               <span className="meta">{phaseGroupLabels[submission.phaseGroup]} • {submission.status}</span>
             </div>
             <div className="rules-list">

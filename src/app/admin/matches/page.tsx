@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminNotice } from "@/components/admin-notice";
+import { TeamLabel } from "@/components/team-flag";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { formatAdminDate } from "@/lib/admin/format";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,10 @@ export const dynamic = "force-dynamic";
 
 function scoreValue(value: number | null) {
   return value === null ? "" : String(value);
+}
+
+function teamName(team: { namePt: string } | null, placeholder: string | null) {
+  return team?.namePt ?? placeholder ?? "A definir";
 }
 
 type AdminMatchesPageProps = {
@@ -31,7 +36,6 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
     <main className="admin-page">
       <section className="matches-header">
         <div>
-          <span className="chip">Admin</span>
           <h1>Jogos</h1>
           <p>Publicação, metadados e resultados oficiais usados no bolão.</p>
         </div>
@@ -67,7 +71,11 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
       </section>
 
       <section className="schedule-list">
-        {matches.map((match) => (
+        {matches.map((match) => {
+          const homeName = teamName(match.homeTeam, match.homePlaceholder);
+          const awayName = teamName(match.awayTeam, match.awayPlaceholder);
+
+          return (
           <article className="schedule-day" key={match.id}>
             <div className="schedule-day-head">
               <div>
@@ -83,39 +91,72 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
               ) : null}
             </div>
             <form className="admin-match-form" action={`/api/admin/matches/${match.id}`} method="post">
-              <label><span>Início</span><input name="kickoffAt" defaultValue={match.kickoffAt.toISOString()} /></label>
-              <label><span>Status</span><select name="status" defaultValue={match.status}>
-                {Object.entries(statusLabels).map(([status, label]) => (
-                  <option key={status} value={status}>{label}</option>
-                ))}
-              </select></label>
-              <label><span>Publicação</span><select name="publicationStatus" defaultValue={match.publicationStatus}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-                <option value="archived">Arquivado</option>
-              </select></label>
-              <label><span>Estádio</span><input name="venueName" defaultValue={match.venueName ?? ""} /></label>
-              <label><span>Cidade</span><input name="venueCity" defaultValue={match.venueCity ?? ""} /></label>
-              <label><span>Mandante</span><input name="homePlaceholder" defaultValue={match.homeTeam?.namePt ?? match.homePlaceholder ?? ""} /></label>
-              <label><span>Visitante</span><input name="awayPlaceholder" defaultValue={match.awayTeam?.namePt ?? match.awayPlaceholder ?? ""} /></label>
-              <label><span>Gols mandante</span><input name="homeGoals" type="number" min="0" defaultValue={scoreValue(match.homeGoals)} /></label>
-              <label><span>Gols visitante</span><input name="awayGoals" type="number" min="0" defaultValue={scoreValue(match.awayGoals)} /></label>
-              <span className="meta">O ranking só pontua jogos com status Encerrado.</span>
-              <button className="button" type="submit">Salvar metadados</button>
+              <div className="admin-score-editor">
+                <div className="admin-score-context">
+                  <span className="eyebrow">Resultado oficial</span>
+                  <strong>
+                    <TeamLabel flagPosition="after" placeholder={match.homePlaceholder} team={match.homeTeam} />
+                    {" x "}
+                    <TeamLabel flagPosition="after" placeholder={match.awayPlaceholder} team={match.awayTeam} />
+                  </strong>
+                  <span>Use status Encerrado para pontuar e recalcular o ranking.</span>
+                </div>
+                <div className="admin-score-board" aria-label={`Placar oficial: ${homeName} contra ${awayName}`}>
+                  <label className="admin-score-side">
+                    <span className="admin-score-team">{homeName}</span>
+                    <input
+                      aria-label={`Gols de ${homeName}`}
+                      className="admin-score-input"
+                      inputMode="numeric"
+                      min="0"
+                      name="homeGoals"
+                      type="number"
+                      defaultValue={scoreValue(match.homeGoals)}
+                    />
+                  </label>
+                  <span className="admin-score-separator">x</span>
+                  <label className="admin-score-side">
+                    <span className="admin-score-team">{awayName}</span>
+                    <input
+                      aria-label={`Gols de ${awayName}`}
+                      className="admin-score-input"
+                      inputMode="numeric"
+                      min="0"
+                      name="awayGoals"
+                      type="number"
+                      defaultValue={scoreValue(match.awayGoals)}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="admin-match-fields admin-match-fields-compact">
+                <label><span>Status do jogo</span><select name="status" defaultValue={match.status}>
+                  {Object.entries(statusLabels).map(([status, label]) => (
+                    <option key={status} value={status}>{label}</option>
+                  ))}
+                </select></label>
+              </div>
+              <div className="admin-form-footer">
+                <span className="meta">O ranking só pontua jogos com status Encerrado e placar completo.</span>
+                <button className="button primary" type="submit">Salvar resultado</button>
+              </div>
             </form>
-            <form className="admin-confirm-form" action={`/api/admin/matches/${match.id}/override-result`} method="post">
-              <label><span>Gols mandante</span><input name="homeGoals" type="number" min="0" defaultValue={scoreValue(match.homeGoals)} /></label>
-              <label><span>Gols visitante</span><input name="awayGoals" type="number" min="0" defaultValue={scoreValue(match.awayGoals)} /></label>
-              <label>
-                <span>Override auditado</span>
-                <input name="confirmation" placeholder="CONFIRMAR" />
-              </label>
-              <small>Digite CONFIRMAR para marcar o jogo como Encerrado e recalcular o ranking.</small>
-              <button className="button" type="submit">Forçar resultado e recalcular</button>
-              <Link className="button" href={`/api/admin/export/matches`}>Exportar jogos</Link>
-            </form>
+            <details className="admin-override-panel">
+              <summary>Correção auditada</summary>
+              <form className="admin-confirm-form" action={`/api/admin/matches/${match.id}/override-result`} method="post">
+                <label><span>Gols mandante</span><input name="homeGoals" type="number" min="0" defaultValue={scoreValue(match.homeGoals)} /></label>
+                <label><span>Gols visitante</span><input name="awayGoals" type="number" min="0" defaultValue={scoreValue(match.awayGoals)} /></label>
+                <label>
+                  <span>Override auditado</span>
+                  <input name="confirmation" placeholder="CONFIRMAR" />
+                </label>
+                <small>Digite CONFIRMAR para marcar o jogo como Encerrado e recalcular o ranking.</small>
+                <button className="button" type="submit">Forçar resultado e recalcular</button>
+              </form>
+            </details>
           </article>
-        ))}
+          );
+        })}
       </section>
     </main>
   );

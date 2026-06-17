@@ -1,8 +1,13 @@
 import Image from "next/image";
+import Link from "next/link";
 
 type AvatarUser = {
   avatarImageDataUrl?: string | null;
   displayName: string;
+  id?: string;
+  role?: string;
+  status?: string;
+  userId?: string;
 };
 
 type UserAvatarProps = {
@@ -14,6 +19,7 @@ type UserAvatarProps = {
 type UserIdentityProps = {
   avatarSize?: UserAvatarProps["size"];
   className?: string;
+  linkToPredictions?: boolean;
   suffix?: string;
   user: AvatarUser;
 };
@@ -53,6 +59,16 @@ function getAvatarPixels(size: NonNullable<UserAvatarProps["size"]>) {
   return 30;
 }
 
+function getPredictionHref(user: AvatarUser) {
+  const userId = user.id ?? user.userId;
+
+  if (!userId || (user.role && user.role !== "player") || (user.status && user.status !== "active")) {
+    return null;
+  }
+
+  return `/predictions?usuario=${encodeURIComponent(userId)}`;
+}
+
 export function UserAvatar({ className, size = "sm", user }: UserAvatarProps) {
   const classes = ["user-avatar", `user-avatar-${size}`, className].filter(Boolean).join(" ");
 
@@ -82,16 +98,33 @@ export function UserAvatar({ className, size = "sm", user }: UserAvatarProps) {
 export function UserIdentity({
   avatarSize = "sm",
   className,
+  linkToPredictions = true,
   suffix = "",
   user,
 }: UserIdentityProps) {
-  return (
-    <span className={["user-identity", className].filter(Boolean).join(" ")}>
+  const classes = ["user-identity", className].filter(Boolean).join(" ");
+  const content = (
+    <>
       <UserAvatar size={avatarSize} user={user} />
       <strong className="user-identity-name">
         {user.displayName}
         {suffix}
       </strong>
+    </>
+  );
+  const href = linkToPredictions ? getPredictionHref(user) : null;
+
+  if (href) {
+    return (
+      <Link className={`${classes} user-identity-link`} href={href}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <span className={classes}>
+      {content}
     </span>
   );
 }

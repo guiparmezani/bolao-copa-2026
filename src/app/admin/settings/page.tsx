@@ -26,7 +26,7 @@ export default async function AdminSettingsPage() {
   return (
     <main className="admin-page">
       <section className="matches-header">
-        <div><span className="chip">Admin</span><h1>Configurações</h1><p>Prazos, políticas e provider. Salvos como JSON simples.</p></div>
+        <div><h1>Configurações</h1><p>Prazos, políticas e provider. Salvos como JSON simples.</p></div>
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <section className="schedule-list">
