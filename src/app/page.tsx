@@ -248,7 +248,9 @@ export default async function Home() {
         <div className="home-panels-layout">
           <article className="card home-ranking-card" id="ranking">
             <div className="card-head">
-              <h2>Ranking geral</h2>
+              <h2>
+                <Link href="/ranking">Ranking geral</Link>
+              </h2>
               <span className="meta">
                 {latestLeaderboardUpdate
                   ? `Atualizado em ${formatUpdatedAt(latestLeaderboardUpdate)}`
@@ -281,7 +283,7 @@ export default async function Home() {
                         <strong>{entry.user.displayName}</strong>
                       </Link>
                       <span>
-                        {entry.exactCount} exatos • {entry.outcomeCount} vencedores
+                        {entry.exactCount} exatos • {entry.outcomeCount} G/P/Empate
                       </span>
                     </span>
                     <span className="pts">{formatPoints(entry.totalPoints)}</span>
