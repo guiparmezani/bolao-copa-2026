@@ -53,7 +53,7 @@ const teamMeta = {
   Mexico: ["México", "🇲🇽", "MX"],
   "South Africa": ["África do Sul", "🇿🇦", "ZA"],
   "South Korea": ["Coreia do Sul", "🇰🇷", "KR"],
-  "Czech Republic": ["Rep. Tcheca", "🇨🇿", "CZ"],
+  "Czech Republic": ["Tchéquia", "🇨🇿", "CZ"],
   Canada: ["Canadá", "🇨🇦", "CA"],
   "Bosnia & Herzegovina": ["Bósnia e Herzegovina", "🇧🇦", "BA"],
   Qatar: ["Catar", "🇶🇦", "QA"],

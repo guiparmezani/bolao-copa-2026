@@ -17,6 +17,10 @@ function teamName(team: { namePt: string } | null, placeholder: string | null) {
   return team?.namePt ?? placeholder ?? "A definir";
 }
 
+function hasFinalScore(match: { awayGoals: number | null; homeGoals: number | null }) {
+  return match.awayGoals !== null && match.homeGoals !== null;
+}
+
 type AdminMatchesPageProps = {
   searchParams?: Promise<{ aviso?: string; erro?: string; mensagem?: string }>;
 };
@@ -24,12 +28,16 @@ type AdminMatchesPageProps = {
 export default async function AdminMatchesPage({ searchParams }: AdminMatchesPageProps) {
   await requireAdminPage();
   const { aviso, erro, mensagem } = (await searchParams) ?? {};
-  const matches = await prisma.match.findMany({
+  const matches = (await prisma.match.findMany({
     include: {
       awayTeam: true,
       homeTeam: true,
     },
     orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
+  })).sort((a, b) => {
+    const scoreOrder = Number(hasFinalScore(a)) - Number(hasFinalScore(b));
+
+    return scoreOrder || a.kickoffAt.getTime() - b.kickoffAt.getTime() || a.matchNumber - b.matchNumber;
   });
 
   return (
@@ -42,33 +50,6 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
         <Link className="button" href="/admin">Voltar ao admin</Link>
       </section>
       <AdminNotice aviso={aviso} erro={erro} mensagem={mensagem} />
-
-      <section className="card admin-actions">
-        <div className="card-head">
-          <h2>Novo jogo manual</h2>
-          <span className="meta">Fallback sem provider</span>
-        </div>
-        <form className="admin-form-grid" action="/api/admin/matches" method="post">
-          <label><span>Número</span><input name="matchNumber" type="number" required /></label>
-          <label><span>Fase</span><select name="phase" defaultValue="group">
-            {Object.entries(phaseLabels).map(([phase, label]) => (
-              <option key={phase} value={phase}>{label}</option>
-            ))}
-          </select></label>
-          <label><span>Início ISO/UTC</span><input name="kickoffAt" placeholder="2026-06-11T19:00:00.000Z" required /></label>
-          <label><span>Grupo</span><input name="groupName" placeholder="Grupo A" /></label>
-          <label><span>Estádio</span><input name="venueName" /></label>
-          <label><span>Cidade</span><input name="venueCity" /></label>
-          <label><span>Mandante/placeholder</span><input name="homePlaceholder" /></label>
-          <label><span>Visitante/placeholder</span><input name="awayPlaceholder" /></label>
-          <label><span>Publicação</span><select name="publicationStatus" defaultValue="draft">
-            <option value="draft">Rascunho</option>
-            <option value="published">Publicado</option>
-            <option value="archived">Arquivado</option>
-          </select></label>
-          <button className="button primary" type="submit">Criar jogo</button>
-        </form>
-      </section>
 
       <section className="schedule-list">
         {matches.map((match) => {
@@ -99,7 +80,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                     {" x "}
                     <TeamLabel flagPosition="after" placeholder={match.awayPlaceholder} team={match.awayTeam} />
                   </strong>
-                  <span>Use status Encerrado para pontuar e recalcular o ranking.</span>
+                  <span>Salvar um placar completo marca o jogo como Encerrado e recalcula o ranking.</span>
                 </div>
                 <div className="admin-score-board" aria-label={`Placar oficial: ${homeName} contra ${awayName}`}>
                   <label className="admin-score-side">
@@ -129,15 +110,8 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                   </label>
                 </div>
               </div>
-              <div className="admin-match-fields admin-match-fields-compact">
-                <label><span>Status do jogo</span><select name="status" defaultValue={match.status}>
-                  {Object.entries(statusLabels).map(([status, label]) => (
-                    <option key={status} value={status}>{label}</option>
-                  ))}
-                </select></label>
-              </div>
               <div className="admin-form-footer">
-                <span className="meta">O ranking só pontua jogos com status Encerrado e placar completo.</span>
+                <span className="meta">Jogos com placar salvo descem na lista para priorizar os próximos resultados.</span>
                 <button className="button primary" type="submit">Salvar resultado</button>
               </div>
             </form>

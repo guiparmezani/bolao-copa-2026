@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import type { MatchStatus, PublicationStatus } from "@prisma/client";
+import type { PublicationStatus } from "@prisma/client";
 
 import { writeAuditLog } from "@/lib/admin/audit";
 import {
@@ -15,13 +15,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-const statuses = new Set(["scheduled", "live", "paused", "finished", "postponed", "cancelled"]);
 const publicationStatuses = new Set(["draft", "published", "archived"]);
-
-function parseStatus(value: unknown, fallback: MatchStatus): MatchStatus {
-  const stringValue = asString(value);
-  return statuses.has(stringValue) ? stringValue as MatchStatus : fallback;
-}
 
 function parsePublicationStatus(value: unknown, fallback: PublicationStatus): PublicationStatus {
   const stringValue = asString(value);
@@ -69,6 +63,9 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
   const publicationStatus = hasField(data, "publicationStatus")
     ? parsePublicationStatus(data.publicationStatus, before.publicationStatus)
     : before.publicationStatus;
+  const homeGoals = nullableNumberField(data, "homeGoals", before.homeGoals);
+  const awayGoals = nullableNumberField(data, "awayGoals", before.awayGoals);
+  const hasOfficialScore = homeGoals !== null && awayGoals !== null;
   const after = await prisma.match.update({
     where: { id },
     data: {
@@ -77,12 +74,12 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
       venueCity: nullableStringField(data, "venueCity", before.venueCity),
       homePlaceholder: nullableStringField(data, "homePlaceholder", before.homePlaceholder),
       awayPlaceholder: nullableStringField(data, "awayPlaceholder", before.awayPlaceholder),
-      status: parseStatus(data.status, before.status),
+      status: hasOfficialScore ? "finished" : before.status,
       publicationStatus,
       publishedAt: publicationStatus === "published" ? before.publishedAt ?? new Date() : null,
       publishedByUserId: publicationStatus === "published" ? before.publishedByUserId ?? user.id : null,
-      homeGoals: nullableNumberField(data, "homeGoals", before.homeGoals),
-      awayGoals: nullableNumberField(data, "awayGoals", before.awayGoals),
+      homeGoals,
+      awayGoals,
       homeGoalsFullTime: nullableNumberField(data, "homeGoalsFullTime", before.homeGoalsFullTime),
       awayGoalsFullTime: nullableNumberField(data, "awayGoalsFullTime", before.awayGoalsFullTime),
       homeGoalsExtraTime: nullableNumberField(data, "homeGoalsExtraTime", before.homeGoalsExtraTime),
@@ -92,17 +89,13 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
     },
   });
 
-  const hasOfficialScore = after.homeGoals !== null && after.awayGoals !== null;
   let leaderboard = null;
   let messageKey: "aviso" | "mensagem" = "mensagem";
   let message = "Metadados salvos.";
 
-  if (after.status === "finished" && hasOfficialScore) {
+  if (hasOfficialScore) {
     leaderboard = await recomputeLeaderboard();
-    message = `Metadados salvos e ranking recalculado para ${leaderboard.leaderboardRows} jogador(es).`;
-  } else if (hasOfficialScore) {
-    messageKey = "aviso";
-    message = "Metadados salvos. O ranking só pontua jogos com status Encerrado.";
+    message = `Resultado salvo como Encerrado e ranking recalculado para ${leaderboard.leaderboardRows} jogador(es).`;
   } else if (after.status === "finished") {
     messageKey = "aviso";
     message = "Metadados salvos. Informe os gols oficiais para pontuar o ranking.";

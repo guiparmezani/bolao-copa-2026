@@ -2276,6 +2276,8 @@ h3 {
     linear-gradient(135deg, rgba(243, 197, 59, 0.18), rgba(22, 134, 74, 0.1)),
     rgba(8, 25, 22, 0.78);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .admin-score-context {
@@ -2308,6 +2310,9 @@ h3 {
   grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
   gap: 10px;
   align-items: end;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .admin-score-side {
@@ -2328,8 +2333,9 @@ h3 {
   white-space: nowrap;
 }
 
-.admin-score-input {
-  width: 88px;
+.admin-match-form .admin-score-input {
+  width: min(88px, 100%);
+  max-width: 100%;
   min-height: 64px;
   border-color: rgba(243, 197, 59, 0.72);
   background: rgba(4, 14, 12, 0.92);
@@ -2408,19 +2414,37 @@ h3 {
 }
 
 @media (max-width: 430px) {
-  .admin-score-board {
-    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
-    gap: 8px;
+  .admin-score-editor {
+    padding: 12px;
   }
 
-  .admin-score-input {
-    width: 72px;
-    min-height: 58px;
-    font-size: 1.5rem;
+  .admin-score-context strong {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-score-context span:last-child {
+    font-size: 0.78rem;
+  }
+
+  .admin-score-board {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .admin-score-team {
+    font-size: 0.78rem;
+  }
+
+  .admin-match-form .admin-score-input {
+    width: min(64px, 100%);
+    min-height: 52px;
+    padding: 0 6px;
+    font-size: 1.35rem;
   }
 
   .admin-score-separator {
-    min-height: 58px;
+    min-height: 52px;
   }
 }
 
