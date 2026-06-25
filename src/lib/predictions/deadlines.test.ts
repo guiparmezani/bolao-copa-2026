@@ -7,6 +7,7 @@ import {
   getGroupSubmissionWindow,
   getKnockoutSubmissionWindow,
   getPlacementSubmissionWindow,
+  getPreviousBrazilNightDeadline,
   isJsonEnabled,
   isBeforeOrAtDeadline,
   parseSettingDate,
@@ -50,6 +51,12 @@ describe("group prediction deadlines", () => {
         new Date(defaultGroupSubmissionDeadlineIso),
       ).statusLabel,
     ).toBe("Encerrado");
+  });
+
+  it("derives the previous 23:59 Brazil deadline from a match kickoff", () => {
+    expect(
+      getPreviousBrazilNightDeadline(new Date("2026-07-04T21:00:00.000Z"))?.toISOString(),
+    ).toBe("2026-07-04T02:59:00.000Z");
   });
 
   it("opens knockout only when fixtures are resolved and the setting enables it", () => {

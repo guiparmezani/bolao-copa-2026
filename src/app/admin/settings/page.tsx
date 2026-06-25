@@ -7,7 +7,12 @@ export const dynamic = "force-dynamic";
 
 const editableSettings = [
   ["group_submission_deadline", "Prazo fase de grupos"],
-  ["knockout_submission_deadline", "Prazo mata-mata"],
+  ["knockout_submission_deadline", "Prazo 16 avos"],
+  ["knockout_round_of_16_submission_deadline", "Prazo oitavas"],
+  ["knockout_quarter_final_submission_deadline", "Prazo quartas"],
+  ["knockout_semi_final_submission_deadline", "Prazo semi"],
+  ["knockout_third_place_submission_deadline", "Prazo 3º lugar"],
+  ["knockout_final_submission_deadline", "Prazo final"],
   ["knockout_predictions_enabled", "Mata-mata habilitado"],
   ["placement_predictions_enabled", "Colocações habilitadas"],
   ["prediction_reveal_policy", "Política de revelação"],

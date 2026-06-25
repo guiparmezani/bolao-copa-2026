@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   areRoundOf32FixturesResolved,
   getDefaultKnockoutSubmissionDeadline,
+  getPreviousBrazilNightDeadline,
   isBeforeOrAtDeadline,
   isJsonEnabled,
   parseSettingDate,
@@ -15,7 +16,7 @@ import {
   parsePredictionPayload,
 } from "@/lib/predictions/group";
 
-const knockoutPhases = [
+export const knockoutPhases = [
   "round_of_32",
   "round_of_16",
   "quarter_final",
@@ -24,10 +25,23 @@ const knockoutPhases = [
   "final",
 ] as const;
 
+export type KnockoutPhase = (typeof knockoutPhases)[number];
+
+export const knockoutPhaseDeadlineSettingKeys: Record<KnockoutPhase, string> = {
+  round_of_32: "knockout_submission_deadline",
+  round_of_16: "knockout_round_of_16_submission_deadline",
+  quarter_final: "knockout_quarter_final_submission_deadline",
+  semi_final: "knockout_semi_final_submission_deadline",
+  third_place: "knockout_third_place_submission_deadline",
+  final: "knockout_final_submission_deadline",
+};
+
 export type KnockoutPredictionMatch = Match & {
   homeTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
   awayTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
 };
+
+export type KnockoutPhaseDeadlines = Record<KnockoutPhase, Date>;
 
 export function isPredictableKnockoutMatch(
   match: Pick<Match, "awayPlaceholder" | "awayTeamId" | "homePlaceholder" | "homeTeamId">,
@@ -41,11 +55,58 @@ export function isPredictableKnockoutMatch(
 }
 
 export async function getKnockoutPredictionDeadline() {
-  const setting = await prisma.appSetting.findUnique({
-    where: { key: "knockout_submission_deadline" },
-  });
+  const deadlines = await getKnockoutPhaseDeadlines();
 
-  return parseSettingDate(setting?.value) ?? getDefaultKnockoutSubmissionDeadline();
+  return deadlines.round_of_32;
+}
+
+function defaultPhaseDeadline(phase: KnockoutPhase, kickoffAt: Date | null | undefined) {
+  if (kickoffAt) {
+    return getPreviousBrazilNightDeadline(kickoffAt) ?? getDefaultKnockoutSubmissionDeadline();
+  }
+
+  return phase === "round_of_32"
+    ? getDefaultKnockoutSubmissionDeadline()
+    : getDefaultKnockoutSubmissionDeadline();
+}
+
+export async function getKnockoutPhaseDeadlines() {
+  const [settings, firstMatches] = await Promise.all([
+    prisma.appSetting.findMany({
+      where: {
+        key: {
+          in: Object.values(knockoutPhaseDeadlineSettingKeys),
+        },
+      },
+    }),
+    prisma.match.findMany({
+      where: {
+        phase: { in: [...knockoutPhases] },
+        publicationStatus: "published",
+      },
+      orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
+      select: {
+        kickoffAt: true,
+        phase: true,
+      },
+    }),
+  ]);
+  const settingByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
+  const firstKickoffByPhase = new Map<KnockoutPhase, Date>();
+
+  for (const match of firstMatches) {
+    if (!firstKickoffByPhase.has(match.phase as KnockoutPhase)) {
+      firstKickoffByPhase.set(match.phase as KnockoutPhase, match.kickoffAt);
+    }
+  }
+
+  return Object.fromEntries(
+    knockoutPhases.map((phase) => {
+      const settingDeadline = parseSettingDate(settingByKey.get(knockoutPhaseDeadlineSettingKeys[phase]));
+
+      return [phase, settingDeadline ?? defaultPhaseDeadline(phase, firstKickoffByPhase.get(phase))];
+    }),
+  ) as KnockoutPhaseDeadlines;
 }
 
 export async function getPublishedKnockoutMatches() {
@@ -62,8 +123,16 @@ export async function getPublishedKnockoutMatches() {
   });
 }
 
-async function getKnockoutWindow(deadline: Date) {
-  const [enabledSetting, roundOf32Matches, predictableMatchCount] = await Promise.all([
+function isKnockoutPhaseDeadlineOpen(
+  phase: KnockoutPhase,
+  deadlines: KnockoutPhaseDeadlines,
+  now: Date,
+) {
+  return isBeforeOrAtDeadline(now, deadlines[phase]);
+}
+
+async function getKnockoutWindow(matches: KnockoutPredictionMatch[], deadlines: KnockoutPhaseDeadlines) {
+  const [enabledSetting, roundOf32Matches] = await Promise.all([
     prisma.appSetting.findUnique({ where: { key: "knockout_predictions_enabled" } }),
     prisma.match.findMany({
       where: { phase: "round_of_32", publicationStatus: "published" },
@@ -74,44 +143,43 @@ async function getKnockoutWindow(deadline: Date) {
         homeTeamId: true,
       },
     }),
-    prisma.match.count({
-      where: {
-        awayPlaceholder: null,
-        awayTeamId: { not: null },
-        homePlaceholder: null,
-        homeTeamId: { not: null },
-        phase: { in: [...knockoutPhases] },
-        publicationStatus: "published",
-      },
-    }),
   ]);
   const now = new Date();
   const roundOf32Resolved = areRoundOf32FixturesResolved(roundOf32Matches);
-  const fullyReady = isJsonEnabled(enabledSetting?.value) && roundOf32Resolved;
-  const partiallyReady = predictableMatchCount > 0;
-  const isOpen = partiallyReady && isBeforeOrAtDeadline(now, deadline);
+  const enabled = enabledSetting ? isJsonEnabled(enabledSetting.value) : true;
+  const predictableMatches = matches.filter(isPredictableKnockoutMatch);
+  const openDeadlines = predictableMatches
+    .map((match) => deadlines[match.phase as KnockoutPhase])
+    .filter((deadline) => isBeforeOrAtDeadline(now, deadline))
+    .sort((a, b) => a.getTime() - b.getTime());
+  const fullyReady = enabled && roundOf32Resolved;
+  const partiallyReady = enabled && predictableMatches.length > 0;
+  const isOpen = partiallyReady && openDeadlines.length > 0;
 
   return {
-    deadline,
+    deadline: openDeadlines[0] ?? deadlines.round_of_32,
+    deadlines,
+    enabled,
     isFullyReady: fullyReady,
     isOpen,
     isReady: partiallyReady,
-    predictableMatchCount,
+    nextDeadline: openDeadlines[0] ?? null,
+    predictableMatchCount: predictableMatches.length,
     roundOf32Resolved,
     statusLabel: !partiallyReady ? "Bloqueado" : isOpen ? "Aberto parcial" : "Encerrado",
   };
 }
 
 export async function getKnockoutPredictionState(userId: string) {
-  const deadline = await getKnockoutPredictionDeadline();
-  const [matches, submission, window] = await Promise.all([
+  const [deadlines, matches, submission] = await Promise.all([
+    getKnockoutPhaseDeadlines(),
     getPublishedKnockoutMatches(),
     prisma.predictionSubmission.findUnique({
       where: { userId_phaseGroup: { userId, phaseGroup: "knockout" } },
       include: { matchPredictions: true },
     }),
-    getKnockoutWindow(deadline),
   ]);
+  const window = await getKnockoutWindow(matches, deadlines);
   const predictionByMatchId = new Map(
     (submission?.matchPredictions ?? []).map((prediction) => [
       prediction.matchId,
@@ -126,8 +194,9 @@ export async function getKnockoutPredictionState(userId: string) {
 
   return {
     confirmedCount,
-    deadline,
-    isConfirmed: submission?.status === "confirmed",
+    deadline: window.deadline,
+    deadlines,
+    isConfirmed: predictableMatches.length > 0 && confirmedCount === predictableMatches.length,
     isComplete: predictableMatches.length > 0 && predictedCount === predictableMatches.length,
     matches: predictableMatches,
     predictedCount,
@@ -138,18 +207,10 @@ export async function getKnockoutPredictionState(userId: string) {
 }
 
 function assertEditable({
-  now,
-  submissionStatus,
   window,
 }: {
-  now: Date;
-  submissionStatus?: string;
-  window: { deadline: Date; isOpen: boolean; isReady: boolean };
+  window: { isOpen: boolean; isReady: boolean };
 }) {
-  if (submissionStatus === "confirmed") {
-    throw new PredictionRuleError("Seus palpites do mata-mata já foram confirmados.", 409);
-  }
-
   if (!window.isReady) {
     throw new PredictionRuleError(
       "Ainda não há jogos do mata-mata liberados para palpite.",
@@ -157,8 +218,8 @@ function assertEditable({
     );
   }
 
-  if (!window.isOpen || now.getTime() > window.deadline.getTime()) {
-    throw new PredictionRuleError("O prazo para palpites do mata-mata já foi encerrado.", 403);
+  if (!window.isOpen) {
+    throw new PredictionRuleError("Não há jogos do mata-mata com prazo aberto para palpite.", 403);
   }
 }
 
@@ -190,8 +251,8 @@ function assertPublishedKnockoutPredictionInputs(
 }
 
 async function getEditableKnockoutContext(userId: string) {
-  const deadline = await getKnockoutPredictionDeadline();
-  const [matches, existingSubmission, window] = await Promise.all([
+  const [deadlines, matches, existingSubmission] = await Promise.all([
+    getKnockoutPhaseDeadlines(),
     prisma.match.findMany({
       where: {
         awayPlaceholder: null,
@@ -201,18 +262,20 @@ async function getEditableKnockoutContext(userId: string) {
         phase: { in: [...knockoutPhases] },
         publicationStatus: "published",
       },
-      select: { id: true },
+      include: {
+        awayTeam: { select: { flagEmoji: true, iso2Code: true, namePt: true } },
+        homeTeam: { select: { flagEmoji: true, iso2Code: true, namePt: true } },
+      },
     }),
     prisma.predictionSubmission.findUnique({
       where: { userId_phaseGroup: { userId, phaseGroup: "knockout" } },
       include: { matchPredictions: true },
     }),
-    getKnockoutWindow(deadline),
   ]);
+  const window = await getKnockoutWindow(matches, deadlines);
+  const now = new Date();
 
   assertEditable({
-    now: new Date(),
-    submissionStatus: existingSubmission?.status,
     window,
   });
 
@@ -221,7 +284,12 @@ async function getEditableKnockoutContext(userId: string) {
       .filter((prediction) => prediction.confirmedAt)
       .map((prediction) => prediction.matchId),
   );
-  const editableMatches = matches.filter((match) => !confirmedMatchIds.has(match.id));
+  const editableMatches = matches.filter((match) => {
+    return (
+      !confirmedMatchIds.has(match.id) &&
+      isKnockoutPhaseDeadlineOpen(match.phase as KnockoutPhase, deadlines, now)
+    );
+  });
 
   return { matches: editableMatches };
 }
@@ -303,6 +371,36 @@ export async function confirmKnockoutPredictions(
       },
       data: { confirmedAt: now },
     });
+
+    const allPredictableMatches = await tx.match.findMany({
+      where: {
+        awayPlaceholder: null,
+        awayTeamId: { not: null },
+        homePlaceholder: null,
+        homeTeamId: { not: null },
+        phase: { in: [...knockoutPhases] },
+        publicationStatus: "published",
+      },
+      select: { id: true },
+    });
+    const confirmedPredictions = await tx.matchPrediction.count({
+      where: {
+        confirmedAt: { not: null },
+        matchId: { in: allPredictableMatches.map((match) => match.id) },
+        submissionId: submission.id,
+        userId,
+      },
+    });
+
+    if (
+      allPredictableMatches.length > 0 &&
+      confirmedPredictions === allPredictableMatches.length
+    ) {
+      return tx.predictionSubmission.update({
+        where: { id: submission.id },
+        data: { confirmedAt: now, status: "confirmed" },
+      });
+    }
 
     return submission;
   });

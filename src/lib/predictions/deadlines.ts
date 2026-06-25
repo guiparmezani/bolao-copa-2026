@@ -41,6 +41,25 @@ export function isBeforeOrAtDeadline(now: Date, deadline: Date) {
   return now.getTime() <= deadline.getTime();
 }
 
+export function getPreviousBrazilNightDeadline(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: groupSubmissionTimeZone,
+    year: "numeric",
+  }).formatToParts(value);
+  const partByType = new Map(parts.map((part) => [part.type, part.value]));
+  const year = Number(partByType.get("year"));
+  const month = Number(partByType.get("month"));
+  const day = Number(partByType.get("day"));
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, 2, 59));
+}
+
 export function isJsonEnabled(value: Prisma.JsonValue | null | undefined) {
   return value === true || value === "true";
 }

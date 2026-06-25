@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { getGroupPredictionDeadline } from "@/lib/predictions/group";
-import { getKnockoutPredictionDeadline } from "@/lib/predictions/knockout";
+import { getKnockoutPhaseDeadlines, knockoutPhases } from "@/lib/predictions/knockout";
 import { getPlacementPredictionDeadline } from "@/lib/predictions/placement";
 import { getActiveScoringRuleConfigs, getPlacementBonuses } from "@/lib/rules";
 import { phaseLabels } from "@/lib/tournament";
@@ -30,12 +30,12 @@ function formatDeadline(value: Date) {
 }
 
 export default async function RulesPage() {
-  const [rules, placementBonuses, groupDeadline, knockoutDeadline, placementDeadline] =
+  const [rules, placementBonuses, groupDeadline, knockoutDeadlines, placementDeadline] =
     await Promise.all([
       getActiveScoringRuleConfigs(),
       getPlacementBonuses(),
       getGroupPredictionDeadline(),
-      getKnockoutPredictionDeadline(),
+      getKnockoutPhaseDeadlines(),
       getPlacementPredictionDeadline(),
     ]);
 
@@ -78,9 +78,15 @@ export default async function RulesPage() {
               <div className="rules-row">
                 <div>
                   <strong>Mata-mata</strong>
-                  <span>{formatDeadline(knockoutDeadline)}</span>
+                  <span>Os prazos variam por fase</span>
                 </div>
               </div>
+              {knockoutPhases.map((phase) => (
+                <div className="rules-row compact" key={phase}>
+                  <strong>{phaseLabels[phase]}</strong>
+                  <span>{formatDeadline(knockoutDeadlines[phase])}</span>
+                </div>
+              ))}
             </div>
           </article>
 
@@ -98,9 +104,9 @@ export default async function RulesPage() {
               </span>
               <strong>Mata-mata</strong>
               <span>
-                Só abre quando os confrontos dos 16 avos estiverem oficiais e
-                sem placeholders. O peso dos 16 avos é igual ao das oitavas, e o
-                prazo está listado acima.
+                Cada jogo abre quando seus dois times estiverem oficiais e sem
+                placeholders. Cada fase tem seu próprio prazo, listado acima, e
+                placares confirmados ficam bloqueados individualmente.
               </span>
               <strong>Campeão, vice e terceiro</strong>
               <span>

@@ -319,6 +319,7 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 - Hidden or locked until at least one knockout fixture has both teams defined.
 - Same UX as group predictions, but rows unlock and lock individually as fixtures become known.
+- Each knockout phase has its own deadline; a confirmed row stays locked while later phases can still open later.
 - Uses placeholder labels before teams are known only for schedule display, not for prediction submission.
 
 `/predictions/winners`
@@ -542,7 +543,8 @@ Recommended default deadlines:
 
 - Group predictions close at 2026-06-11 23:59 `America/Sao_Paulo`.
 - Knockout predictions open per match when the provider/local resolver confirms both participants and the fixture is non-placeholder.
-- Knockout predictions close at 2026-06-27 23:59 `America/Sao_Paulo`.
+- Knockout `16 avos` predictions close at 2026-06-27 23:59 `America/Sao_Paulo`.
+- Later knockout phases close at 23:59 `America/Sao_Paulo` on the night before that phase starts unless an admin setting overrides the computed default.
 - Winner/placement picks close at the same deadline as group predictions: 2026-06-11 23:59 `America/Sao_Paulo`.
 - Public prediction reveal happens per match as soon as that match is finished. Before a match is finished, submitted predictions for that match stay hidden to prevent copying.
 
@@ -551,7 +553,7 @@ If the group decides to allow late group submissions, this should be an explicit
 Immutability:
 
 - Users can edit draft predictions until they confirm or the deadline passes.
-- Confirmation locks all predictions in that submission.
+- Group and winner confirmations lock the whole submission. Mata-mata confirmation locks only the currently released and still-open match rows.
 - Database writes must reject updates/deletes to confirmed prediction rows except admin corrections through audited override code.
 - Admin overrides should never rewrite the original user prediction; store a separate audit record if a correction is unavoidable.
 
@@ -764,7 +766,12 @@ Settings:
 
 - `group_submission_deadline`
 - `knockout_submission_open_at`
-- `knockout_submission_deadline`
+- `knockout_submission_deadline` for `16 avos`
+- `knockout_round_of_16_submission_deadline`
+- `knockout_quarter_final_submission_deadline`
+- `knockout_semi_final_submission_deadline`
+- `knockout_third_place_submission_deadline`
+- `knockout_final_submission_deadline`
 - `placement_submission_deadline`
 - `prediction_reveal_policy`
 - `placement_predictions_enabled` default `true` to preserve the 2022 bolão rules
@@ -906,8 +913,9 @@ Worker sync jobs:
   - Resolves best-third-place slots only after all 12 groups are complete and FIFA Annexe C identifies the exact pairing combination.
   - Leaves unresolved or tie-dependent slots as placeholders so knockout predictions stay locked.
 - `openKnockoutPredictionsIfReady`
-  - Checks all Round-of-32 fixtures have real participants and no placeholders.
-  - Sets `knockout_submission_open_at` or flips a setting.
+  - Keeps the global mata-mata setting enabled when Round-of-32 fixtures are fully resolved.
+  - Progressive match-level unlock does not wait for every Round-of-32 fixture; each defined fixture can be predicted if its phase deadline is still open.
+  - Sets `knockout_submission_open_at` or flips a setting for audit/admin visibility.
   - Notifies admins in logs.
 - `syncOfficialStandings`
   - Stores official group standings and qualification status when available.
@@ -1208,7 +1216,7 @@ Optional:
 - Existing users can log in; new public signup is closed.
 - Users can submit group predictions and cannot alter them after confirmation.
 - Knockout prediction form is unavailable until at least one knockout fixture is fully defined.
-- Users can submit knockout predictions progressively; each confirmed match row cannot be altered after confirmation.
+- Users can submit knockout predictions progressively by phase-specific deadline; each confirmed match row cannot be altered after confirmation.
 - Users can submit champion, runner-up, and third-place picks using the 2022 bolão bonus rules.
 - Admins can publish imported/manual matches, manage users, override results, inspect submissions, recompute scores, and review audit logs.
 - Homepage shows a live leaderboard.

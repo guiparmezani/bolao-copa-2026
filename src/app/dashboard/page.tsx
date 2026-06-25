@@ -158,7 +158,9 @@ export default async function DashboardPage() {
               {knockoutPredictions.matches.length} jogos liberados.
             </span>
             <span>
-              Prazo do mata-mata: {formatDeadline(knockoutPredictions.deadline)}.
+              {knockoutPredictions.window.nextDeadline
+                ? `Próximo prazo do mata-mata: ${formatDeadline(knockoutPredictions.window.nextDeadline)}.`
+                : "Nenhum jogo do mata-mata com prazo aberto no momento."}
             </span>
             {knockoutPredictions.isConfirmed ? (
               <span>

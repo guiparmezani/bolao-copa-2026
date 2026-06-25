@@ -601,16 +601,22 @@ async function seedScoringDefaults() {
     },
   });
 
-  await prisma.appSetting.upsert({
-    where: { key: "knockout_submission_deadline" },
-    update: {
-      value: "2026-06-28T02:59:00.000Z",
-    },
-    create: {
-      key: "knockout_submission_deadline",
-      value: "2026-06-28T02:59:00.000Z",
-    },
-  });
+  const knockoutDeadlines = {
+    knockout_submission_deadline: "2026-06-28T02:59:00.000Z",
+    knockout_round_of_16_submission_deadline: "2026-07-04T02:59:00.000Z",
+    knockout_quarter_final_submission_deadline: "2026-07-09T02:59:00.000Z",
+    knockout_semi_final_submission_deadline: "2026-07-14T02:59:00.000Z",
+    knockout_third_place_submission_deadline: "2026-07-18T02:59:00.000Z",
+    knockout_final_submission_deadline: "2026-07-19T02:59:00.000Z",
+  };
+
+  for (const [key, value] of Object.entries(knockoutDeadlines)) {
+    await prisma.appSetting.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    });
+  }
 
   await prisma.appSetting.upsert({
     where: { key: "placement_submission_deadline" },

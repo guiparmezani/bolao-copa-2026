@@ -11,6 +11,7 @@ type PredictionMatch = {
   };
   dateKey: string;
   dateLabel: string;
+  deadlineLabel?: string;
   groupName: string | null;
   home: {
     flag: string;
@@ -19,6 +20,7 @@ type PredictionMatch = {
   };
   id: string;
   isLocked?: boolean;
+  lockLabel?: string;
   matchNumber: number;
   phaseLabel: string;
   timeLabel: string;
@@ -361,8 +363,8 @@ export function GroupPredictionForm({
           <h1>{title}</h1>
           <p>
             {description ??
-              "Informe os placares dos jogos publicados. O rascunho pode ser alterado até a confirmação ou até o prazo:"}{" "}
-            {deadlineLabel}.
+              "Informe os placares dos jogos publicados. O rascunho pode ser alterado até a confirmação ou até o prazo:"}
+            {deadlineLabel ? ` ${deadlineLabel}.` : null}
           </p>
         </div>
         <div className="prediction-actions">{actionButtons}</div>
@@ -476,10 +478,13 @@ export function GroupPredictionForm({
                       </div>
                       <div className="match-meta-line lower">
                         <span>{match.venueLabel}</span>
+                        {match.deadlineLabel ? <span>Prazo: {match.deadlineLabel}</span> : null}
                         {hasMatchError ? (
                           <span className="field-error-text">Revise este placar.</span>
                         ) : null}
-                        {isConfirmed || match.isLocked ? <span>Palpite bloqueado</span> : null}
+                        {isConfirmed || match.isLocked ? (
+                          <span>{match.lockLabel ?? "Palpite bloqueado"}</span>
+                        ) : null}
                       </div>
                     </div>
                   );

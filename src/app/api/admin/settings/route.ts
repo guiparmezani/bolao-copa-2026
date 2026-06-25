@@ -9,6 +9,11 @@ import { prisma } from "@/lib/prisma";
 const allowedSettings = new Set([
   "group_submission_deadline",
   "knockout_submission_deadline",
+  "knockout_round_of_16_submission_deadline",
+  "knockout_quarter_final_submission_deadline",
+  "knockout_semi_final_submission_deadline",
+  "knockout_third_place_submission_deadline",
+  "knockout_final_submission_deadline",
   "placement_submission_deadline",
   "knockout_predictions_enabled",
   "placement_predictions_enabled",

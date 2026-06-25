@@ -4,9 +4,9 @@ Web app for a Brazilian World Cup 2026 bolao. Registered players log in, submit
 locked score predictions, pick champion/runner-up/third place, browse submitted
 predictions, and follow the leaderboard. Public signup is currently closed.
 
-The app is local-first right now. Production deployment is planned for
-`bolao.parmezani.com`, behind Caddy on the `parmavps` VPS, but
-the repo can be developed and validated fully on a local machine.
+The app runs in production at `bolao.parmezani.com`, behind Caddy on the
+`parmavps` VPS, and can also be developed and validated fully on a local
+machine.
 
 ## What Is Implemented
 
@@ -240,13 +240,17 @@ Admin-only:
 Default deadlines are stored in app settings:
 
 - group predictions: `2026-06-11 23:59 America/Sao_Paulo`
-- knockout predictions: `2026-06-27 23:59 America/Sao_Paulo` by default, with
-  fixtures opening progressively as both teams are defined
+- knockout predictions: fixtures open progressively as both teams are defined,
+  and each phase has its own deadline. By default, `16 avos` closes at
+  `2026-06-27 23:59 America/Sao_Paulo`; later phases close at 23:59
+  `America/Sao_Paulo` on the night before that phase starts unless overridden
+  in admin settings
 - champion/runner-up/third-place picks: same as group predictions
 
-Users can edit drafts until they confirm or the deadline closes. Confirmed
-prediction rows are protected by database triggers. Mata-mata confirmation locks
-only the currently released match rows, allowing future fixtures to open later.
+Users can edit drafts until they confirm or that match phase's deadline closes.
+Confirmed prediction rows are protected by database triggers. Mata-mata
+confirmation locks only the currently released and still-open match rows,
+allowing future fixtures to open later.
 Admin unlocks use an audited override path and should be treated as exceptional
 support operations.
 
