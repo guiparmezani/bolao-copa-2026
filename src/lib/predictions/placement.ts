@@ -39,7 +39,7 @@ export async function getPlacementPredictionState(userId: string) {
     getPlacementEnabled(),
     prisma.team.findMany({
       orderBy: [{ namePt: "asc" }],
-      select: { flagEmoji: true, id: true, namePt: true },
+      select: { flagEmoji: true, id: true, iso2Code: true, namePt: true },
     }),
     prisma.predictionSubmission.findUnique({
       where: { userId_phaseGroup: { userId, phaseGroup: "placement" } },

@@ -6,6 +6,7 @@ import {
   syncOfficialStandings,
   syncStaticTournamentData,
 } from "@/lib/sync/tournament-sync";
+import { syncTournamentProgression } from "@/lib/sync/tournament-progression";
 
 const commands = {
   all: async () => ({
@@ -13,11 +14,13 @@ const commands = {
     liveMatches: await syncLiveMatches(),
     finalizeFinishedMatches: await finalizeFinishedMatches(),
     officialStandings: await syncOfficialStandings(),
+    tournamentProgression: await syncTournamentProgression(),
     openKnockoutPredictionsIfReady: await openKnockoutPredictionsIfReady(),
   }),
   static: syncStaticTournamentData,
   live: syncLiveMatches,
   finalize: finalizeFinishedMatches,
+  progression: syncTournamentProgression,
   standings: syncOfficialStandings,
   "open-knockout": openKnockoutPredictionsIfReady,
 } as const;

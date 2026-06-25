@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../prisma";
 
 type SyncLogClient = PrismaClient | typeof prisma;
 

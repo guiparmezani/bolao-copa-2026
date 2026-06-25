@@ -50,9 +50,6 @@ async function getUserPredictionData(userId: string) {
         confirmedAt: {
           not: null,
         },
-        submission: {
-          status: "confirmed",
-        },
         userId,
       },
       include: {
@@ -109,9 +106,6 @@ async function getMatchPredictionScores(matchId: string | null) {
         not: null,
       },
       matchId,
-      submission: {
-        status: "confirmed",
-      },
       user: {
         role: "player",
         status: "active",

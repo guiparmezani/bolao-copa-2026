@@ -9,6 +9,8 @@ import {
 import { asNumber, asString, readRequestData } from "@/lib/admin/forms";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 import { prisma } from "@/lib/prisma";
+import { openKnockoutPredictionsIfReady } from "@/lib/sync/tournament-sync";
+import { syncTournamentProgression } from "@/lib/sync/tournament-progression";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     },
   });
   const leaderboard = await recomputeLeaderboard();
+  const progression = await syncTournamentProgression();
+  const openKnockout = await openKnockoutPredictionsIfReady();
 
   await writeAuditLog({
     actorUserId: user.id,
@@ -86,7 +90,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     targetEntity: "match",
     targetId: id,
     before,
-    after: { match: after, leaderboard },
+    after: { match: after, leaderboard, progression, openKnockout },
   });
 
   if (shouldRedirectBack(request)) {
@@ -98,5 +102,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  return Response.json({ ok: true, match: after, leaderboard });
+  return Response.json({ ok: true, match: after, leaderboard, openKnockout, progression });
 }

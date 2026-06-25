@@ -10,6 +10,8 @@ import {
 import { asDate, asNullableString, asNumber, asString, readRequestData } from "@/lib/admin/forms";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 import { prisma } from "@/lib/prisma";
+import { openKnockoutPredictionsIfReady } from "@/lib/sync/tournament-sync";
+import { syncTournamentProgression } from "@/lib/sync/tournament-progression";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -90,11 +92,15 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
   });
 
   let leaderboard = null;
+  let progression = null;
+  let openKnockout = null;
   let messageKey: "aviso" | "mensagem" = "mensagem";
   let message = "Metadados salvos.";
 
   if (hasOfficialScore) {
     leaderboard = await recomputeLeaderboard();
+    progression = await syncTournamentProgression();
+    openKnockout = await openKnockoutPredictionsIfReady();
     message = `Resultado salvo como Encerrado e ranking recalculado para ${leaderboard.leaderboardRows} jogador(es).`;
   } else if (after.status === "finished") {
     messageKey = "aviso";
@@ -107,12 +113,12 @@ async function updateMatch(request: NextRequest, context: RouteContext) {
     targetEntity: "match",
     targetId: id,
     before,
-    after: { match: after, leaderboard },
+    after: { match: after, leaderboard, progression, openKnockout },
   });
 
   if (shouldRedirectBack(request)) {
     return redirectBackWithMessage(request, "/admin/matches", messageKey, message);
   }
 
-  return Response.json({ ok: true, leaderboard, match: after });
+  return Response.json({ ok: true, leaderboard, match: after, openKnockout, progression });
 }

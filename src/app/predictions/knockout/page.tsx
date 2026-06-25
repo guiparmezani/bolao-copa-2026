@@ -12,11 +12,12 @@ import { GroupPredictionForm } from "../group/group-prediction-form";
 export const dynamic = "force-dynamic";
 
 function teamLabel(
-  team: { flagEmoji: string; namePt: string } | null,
+  team: { flagEmoji: string; iso2Code: string | null; namePt: string } | null,
   placeholder: string | null,
 ) {
   return {
     flag: team?.flagEmoji ?? "□",
+    iso2Code: team?.iso2Code ?? null,
     name: team?.namePt ?? placeholder ?? "A definir",
   };
 }
@@ -33,20 +34,23 @@ export default async function KnockoutPredictionsPage() {
   const user = await requirePlayerPage();
 
   const state = await getKnockoutPredictionState(user.id);
-  const matches = state.window.isReady
-    ? state.matches.map((match) => ({
-        away: teamLabel(match.awayTeam, match.awayPlaceholder),
-        dateKey: getBrazilDateKey(match.kickoffAt),
-        dateLabel: formatBrazilDate(match.kickoffAt),
-        groupName: null,
-        home: teamLabel(match.homeTeam, match.homePlaceholder),
-        id: match.id,
-        matchNumber: match.matchNumber,
-        phaseLabel: phaseLabels[match.phase],
-        timeLabel: formatBrazilTime(match.kickoffAt),
-        venueLabel: [match.venueName, match.venueCity].filter(Boolean).join(" • "),
-      }))
-    : [];
+  const matches = state.matches.map((match) => {
+    const prediction = state.predictionByMatchId.get(match.id);
+
+    return {
+      away: teamLabel(match.awayTeam, match.awayPlaceholder),
+      dateKey: getBrazilDateKey(match.kickoffAt),
+      dateLabel: formatBrazilDate(match.kickoffAt),
+      groupName: null,
+      home: teamLabel(match.homeTeam, match.homePlaceholder),
+      id: match.id,
+      isLocked: Boolean(prediction?.confirmedAt),
+      matchNumber: match.matchNumber,
+      phaseLabel: phaseLabels[match.phase],
+      timeLabel: formatBrazilTime(match.kickoffAt),
+      venueLabel: [match.venueName, match.venueCity].filter(Boolean).join(" • "),
+    };
+  });
   const initialPredictions = Object.fromEntries(
     Array.from(state.predictionByMatchId.entries()).map(([matchId, prediction]) => [
       matchId,
@@ -65,16 +69,16 @@ export default async function KnockoutPredictionsPage() {
           deadlineLabel={formatDeadline(state.deadline)}
           description={
             state.window.isReady
-              ? "Informe os placares do mata-mata. O rascunho pode ser alterado até a confirmação ou até o prazo:"
-              : "O formulário será liberado quando todos os confrontos dos 16 avos estiverem definidos. Prazo previsto:"
+              ? "Os jogos do mata-mata aparecem aqui conforme os confrontos forem definidos. Rascunhos podem ser alterados até a confirmação do jogo ou até o prazo:"
+              : "O formulário será liberado assim que houver ao menos um confronto do mata-mata com os dois times definidos. Prazo previsto:"
           }
           draftEndpoint="/api/predictions/knockout/draft"
           emptyText={
             state.window.isReady
-              ? "O mata-mata ainda não tem partidas publicadas para palpite."
-              : "Aguardando a confirmação oficial dos confrontos dos 16 avos de final."
+              ? "Nenhum confronto liberado para palpite neste momento."
+              : "Aguardando a definição oficial dos confrontos do mata-mata."
           }
-          emptyTitle={state.window.isReady ? "Nenhum jogo publicado" : "Mata-mata bloqueado"}
+          emptyTitle={state.window.isReady ? "Nenhum jogo liberado" : "Mata-mata bloqueado"}
           initialPredictions={initialPredictions}
           isConfirmed={state.isConfirmed}
           isOpen={state.window.isOpen}

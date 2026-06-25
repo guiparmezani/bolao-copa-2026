@@ -9,6 +9,7 @@ import {
   syncOfficialStandings,
   syncStaticTournamentData,
 } from "@/lib/sync/tournament-sync";
+import { syncTournamentProgression } from "@/lib/sync/tournament-progression";
 
 export async function POST(request: NextRequest) {
   const { response, user } = await requireAdminApi(request, true);
@@ -17,14 +18,13 @@ export async function POST(request: NextRequest) {
     return response;
   }
 
-  const [staticSync, liveSync, standings, finalize, openKnockout] = await Promise.all([
-    syncStaticTournamentData(),
-    syncLiveMatches(),
-    syncOfficialStandings(),
-    finalizeFinishedMatches(),
-    openKnockoutPredictionsIfReady(),
-  ]);
-  const result = { staticSync, liveSync, standings, finalize, openKnockout };
+  const staticSync = await syncStaticTournamentData();
+  const liveSync = await syncLiveMatches();
+  const standings = await syncOfficialStandings();
+  const finalize = await finalizeFinishedMatches();
+  const progression = await syncTournamentProgression();
+  const openKnockout = await openKnockoutPredictionsIfReady();
+  const result = { staticSync, liveSync, standings, finalize, progression, openKnockout };
 
   await writeAuditLog({
     actorUserId: user.id,

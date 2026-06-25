@@ -5,6 +5,7 @@ import type { NormalizedMatch, NormalizedStanding, TournamentDataProvider } from
 import { prisma } from "@/lib/prisma";
 import { recomputeLeaderboard } from "@/lib/leaderboard";
 import { withProviderSyncLog } from "@/lib/sync/provider-logs";
+import { syncTournamentProgression } from "@/lib/sync/tournament-progression";
 
 type SyncClient = PrismaClient | typeof prisma;
 
@@ -18,6 +19,7 @@ type FinalizeResult = {
   finishedMatches: number;
   recomputed: boolean;
   leaderboardRows: number;
+  progression?: Awaited<ReturnType<typeof syncTournamentProgression>>;
 };
 
 export function getDefaultTournamentProvider(): TournamentDataProvider {
@@ -89,8 +91,20 @@ async function upsertStaticMatches(
   for (const match of matches) {
     const existing = await client.match.findUnique({
       where: { matchNumber: match.matchNumber },
-      select: { id: true },
+      select: {
+        awayPlaceholder: true,
+        awayTeamId: true,
+        homePlaceholder: true,
+        homeTeamId: true,
+        id: true,
+      },
     });
+    const homeTeamId = match.homeTeamProviderId
+      ? teamByProviderId.get(match.homeTeamProviderId) ?? null
+      : existing?.homeTeamId ?? null;
+    const awayTeamId = match.awayTeamProviderId
+      ? teamByProviderId.get(match.awayTeamProviderId) ?? null
+      : existing?.awayTeamId ?? null;
     const data = {
       providerSource: match.providerSource,
       providerId: match.providerId,
@@ -99,14 +113,10 @@ async function upsertStaticMatches(
       kickoffAt: match.kickoffAt,
       venueName: match.venueName ?? null,
       venueCity: match.venueCity ?? null,
-      homeTeamId: match.homeTeamProviderId
-        ? teamByProviderId.get(match.homeTeamProviderId) ?? null
-        : null,
-      awayTeamId: match.awayTeamProviderId
-        ? teamByProviderId.get(match.awayTeamProviderId) ?? null
-        : null,
-      homePlaceholder: match.homePlaceholder ?? null,
-      awayPlaceholder: match.awayPlaceholder ?? null,
+      homeTeamId,
+      awayTeamId,
+      homePlaceholder: homeTeamId ? null : match.homePlaceholder ?? null,
+      awayPlaceholder: awayTeamId ? null : match.awayPlaceholder ?? null,
       publicationStatus: "published" as const,
       publishedAt: now,
       rawProviderPayload: asJson(match.raw),
@@ -402,14 +412,16 @@ export async function finalizeFinishedMatches(client: SyncClient = prisma): Prom
       }
 
       const leaderboard = await recomputeLeaderboard(client);
+      const progression = await syncTournamentProgression(client);
 
       return {
         result: {
           finishedMatches,
           recomputed: true,
           leaderboardRows: leaderboard.leaderboardRows,
+          progression,
         },
-        metadata: asJson({ finishedMatches, leaderboard }),
+        metadata: asJson({ finishedMatches, leaderboard, progression }),
       };
     },
     client,

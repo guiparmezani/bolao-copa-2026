@@ -6,6 +6,7 @@ import { TeamFlag } from "@/components/team-flag";
 type PredictionMatch = {
   away: {
     flag: string;
+    iso2Code: string | null;
     name: string;
   };
   dateKey: string;
@@ -13,9 +14,11 @@ type PredictionMatch = {
   groupName: string | null;
   home: {
     flag: string;
+    iso2Code: string | null;
     name: string;
   };
   id: string;
+  isLocked?: boolean;
   matchNumber: number;
   phaseLabel: string;
   timeLabel: string;
@@ -69,11 +72,20 @@ function buildInitialValues(
   );
 }
 
-function toPayload(values: Record<string, PredictionValue>, requireComplete: boolean) {
+function toPayload(
+  values: Record<string, PredictionValue>,
+  matches: PredictionMatch[],
+  requireComplete: boolean,
+) {
   const invalidMatchIds: string[] = [];
   const predictions = [];
 
-  for (const [matchId, value] of Object.entries(values)) {
+  for (const match of matches) {
+    if (match.isLocked) {
+      continue;
+    }
+
+    const value = values[match.id] ?? { awayGoals: "", homeGoals: "" };
     const hasHomeGoals = value.homeGoals !== "";
     const hasAwayGoals = value.awayGoals !== "";
     const shouldValidate = requireComplete || hasHomeGoals || hasAwayGoals;
@@ -93,14 +105,14 @@ function toPayload(values: Record<string, PredictionValue>, requireComplete: boo
       awayGoals >= 0;
 
     if (!isValid) {
-      invalidMatchIds.push(matchId);
+      invalidMatchIds.push(match.id);
       continue;
     }
 
     predictions.push({
       awayGoals,
       homeGoals,
-      matchId,
+      matchId: match.id,
     });
   }
 
@@ -131,10 +143,19 @@ function getPredictionValidationError(error: unknown) {
   return null;
 }
 
-function getInvalidMatchIds(values: Record<string, PredictionValue>, requireComplete: boolean) {
+function getInvalidMatchIds(
+  values: Record<string, PredictionValue>,
+  matches: PredictionMatch[],
+  requireComplete: boolean,
+) {
   const invalidMatchIds: string[] = [];
 
-  for (const [matchId, value] of Object.entries(values)) {
+  for (const match of matches) {
+    if (match.isLocked) {
+      continue;
+    }
+
+    const value = values[match.id] ?? { awayGoals: "", homeGoals: "" };
     const hasHomeGoals = value.homeGoals !== "";
     const hasAwayGoals = value.awayGoals !== "";
 
@@ -153,7 +174,7 @@ function getInvalidMatchIds(values: Record<string, PredictionValue>, requireComp
       awayGoals >= 0;
 
     if (!isValid) {
-      invalidMatchIds.push(matchId);
+      invalidMatchIds.push(match.id);
     }
   }
 
@@ -189,6 +210,8 @@ export function GroupPredictionForm({
   }, [matches]);
   const invalidMatchSet = useMemo(() => new Set(invalidMatchIds), [invalidMatchIds]);
   const editable = isOpen && !isConfirmed;
+  const editableMatchCount = matches.filter((match) => !match.isLocked).length;
+  const canEditMatches = editable && editableMatchCount > 0;
 
   function scrollToMessage() {
     window.setTimeout(() => {
@@ -201,7 +224,7 @@ export function GroupPredictionForm({
     setInvalidMatchIds([]);
 
     try {
-      const predictions = toPayload(nextValues, false);
+      const predictions = toPayload(nextValues, matches, false);
       const response = await fetch(draftEndpoint, {
         body: JSON.stringify({ predictions }),
         headers: {
@@ -224,7 +247,9 @@ export function GroupPredictionForm({
       const validationError = getPredictionValidationError(draftError);
 
       setStatus(null);
-      setInvalidMatchIds(validationError?.invalidMatchIds ?? getInvalidMatchIds(nextValues, false));
+      setInvalidMatchIds(
+        validationError?.invalidMatchIds ?? getInvalidMatchIds(nextValues, matches, false),
+      );
       setError(draftError instanceof Error ? draftError.message : "Não foi possível salvar.");
       if (scrollOnComplete) {
         scrollToMessage();
@@ -257,7 +282,7 @@ export function GroupPredictionForm({
     setStatus(null);
     setError(null);
 
-    const invalidIds = getInvalidMatchIds(values, true);
+    const invalidIds = getInvalidMatchIds(values, matches, true);
 
     if (invalidIds.length > 0) {
       setInvalidMatchIds(invalidIds);
@@ -276,7 +301,7 @@ export function GroupPredictionForm({
       setInvalidMatchIds([]);
 
       try {
-        const predictions = toPayload(values, true);
+        const predictions = toPayload(values, matches, true);
         const response = await fetch(confirmEndpoint, {
           body: JSON.stringify({ predictions }),
           headers: {
@@ -295,7 +320,9 @@ export function GroupPredictionForm({
         const validationError = getPredictionValidationError(confirmError);
 
         setConfirmOpen(false);
-        setInvalidMatchIds(validationError?.invalidMatchIds ?? getInvalidMatchIds(values, true));
+        setInvalidMatchIds(
+          validationError?.invalidMatchIds ?? getInvalidMatchIds(values, matches, true),
+        );
         setError(
           confirmError instanceof Error
             ? confirmError.message
@@ -310,7 +337,7 @@ export function GroupPredictionForm({
     <>
       <button
         className="button"
-        disabled={!editable || isPending}
+        disabled={!canEditMatches || isPending}
         onClick={saveDraft}
         type="button"
       >
@@ -318,7 +345,7 @@ export function GroupPredictionForm({
       </button>
       <button
         className="button primary"
-        disabled={!editable || isPending || matches.length === 0}
+        disabled={!canEditMatches || isPending || matches.length === 0}
         onClick={openConfirmDialog}
         type="button"
       >
@@ -367,6 +394,7 @@ export function GroupPredictionForm({
                 {dayMatches.map((match) => {
                   const value = values[match.id] ?? { awayGoals: "", homeGoals: "" };
                   const hasMatchError = invalidMatchSet.has(match.id);
+                  const matchEditable = editable && !match.isLocked;
 
                   return (
                     <div
@@ -388,18 +416,22 @@ export function GroupPredictionForm({
                           <strong>{match.home.name}</strong>
                           <TeamFlag
                             fallback="□"
-                            team={{ flagEmoji: match.home.flag, namePt: match.home.name }}
+                            team={{
+                              flagEmoji: match.home.flag,
+                              iso2Code: match.home.iso2Code,
+                              namePt: match.home.name,
+                            }}
                           />
                         </span>
                         <input
                           aria-invalid={hasMatchError || undefined}
                           aria-label={`Gols de ${match.home.name}`}
-                          disabled={!editable}
+                          disabled={!matchEditable}
                           inputMode="numeric"
                           min="0"
                           name={`home-${match.id}`}
                           onBlur={() => {
-                            if (editable && value.homeGoals !== "" && value.awayGoals !== "") {
+                            if (matchEditable && value.homeGoals !== "" && value.awayGoals !== "") {
                               void submitDraft(undefined, false);
                             }
                           }}
@@ -414,12 +446,12 @@ export function GroupPredictionForm({
                         <input
                           aria-invalid={hasMatchError || undefined}
                           aria-label={`Gols de ${match.away.name}`}
-                          disabled={!editable}
+                          disabled={!matchEditable}
                           inputMode="numeric"
                           min="0"
                           name={`away-${match.id}`}
                           onBlur={() => {
-                            if (editable && value.homeGoals !== "" && value.awayGoals !== "") {
+                            if (matchEditable && value.homeGoals !== "" && value.awayGoals !== "") {
                               void submitDraft(undefined, false);
                             }
                           }}
@@ -433,7 +465,11 @@ export function GroupPredictionForm({
                         <span className="schedule-team away">
                           <TeamFlag
                             fallback="□"
-                            team={{ flagEmoji: match.away.flag, namePt: match.away.name }}
+                            team={{
+                              flagEmoji: match.away.flag,
+                              iso2Code: match.away.iso2Code,
+                              namePt: match.away.name,
+                            }}
                           />
                           <strong>{match.away.name}</strong>
                         </span>
@@ -443,7 +479,7 @@ export function GroupPredictionForm({
                         {hasMatchError ? (
                           <span className="field-error-text">Revise este placar.</span>
                         ) : null}
-                        {isConfirmed ? <span>Palpite bloqueado</span> : null}
+                        {isConfirmed || match.isLocked ? <span>Palpite bloqueado</span> : null}
                       </div>
                     </div>
                   );
@@ -463,7 +499,7 @@ export function GroupPredictionForm({
           <div aria-labelledby="confirm-title" aria-modal="true" className="lightbox" role="dialog">
             <h2 id="confirm-title">Confirmar palpites?</h2>
             <p>
-              Depois de confirmar, seus placares desta fase ficam travados e não poderão
+              Depois de confirmar, estes placares ficam travados e não poderão
               ser alterados.
             </p>
             <label className="confirm-check">
@@ -472,7 +508,7 @@ export function GroupPredictionForm({
                 onChange={(event) => setChecked(event.target.checked)}
                 type="checkbox"
               />
-              <span>Entendi que não poderei mudar estes palpites.</span>
+              <span>Entendi que não poderei mudar estes placares confirmados.</span>
             </label>
             <div className="prediction-actions">
               <button

@@ -12,11 +12,12 @@ import { GroupPredictionForm } from "./group-prediction-form";
 export const dynamic = "force-dynamic";
 
 function teamLabel(
-  team: { flagEmoji: string; namePt: string } | null,
+  team: { flagEmoji: string; iso2Code: string | null; namePt: string } | null,
   placeholder: string | null,
 ) {
   return {
     flag: team?.flagEmoji ?? "□",
+    iso2Code: team?.iso2Code ?? null,
     name: team?.namePt ?? placeholder ?? "A definir",
   };
 }

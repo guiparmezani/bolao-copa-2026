@@ -8,6 +8,7 @@ type PlacementKind = "champion" | "runner_up" | "third_place";
 type TeamOption = {
   flagEmoji: string;
   id: string;
+  iso2Code: string | null;
   namePt: string;
 };
 

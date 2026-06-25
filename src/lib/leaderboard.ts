@@ -130,9 +130,6 @@ export async function recomputeLeaderboard(client: LeaderboardClient = prisma) {
   const predictions = await client.matchPrediction.findMany({
     where: {
       confirmedAt: { not: null },
-      submission: {
-        status: "confirmed",
-      },
     },
     include: {
       match: true,

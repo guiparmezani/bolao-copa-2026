@@ -60,10 +60,12 @@ body {
   vertical-align: -0.08em;
 }
 
-.team-flag-icon svg {
+.team-flag-icon svg,
+.team-flag-icon img {
   width: 100%;
   height: 100%;
   display: block;
+  object-fit: cover;
 }
 
 .user-avatar {

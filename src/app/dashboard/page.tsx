@@ -26,7 +26,7 @@ function formatDeadline(value: Date) {
 }
 
 function getTeamName(
-  team: { flagEmoji: string; namePt: string } | null,
+  team: { flagEmoji: string; iso2Code?: string | null; namePt: string } | null,
   placeholder: string | null,
   flagPosition: "before" | "after",
 ) {
@@ -151,8 +151,12 @@ export default async function DashboardPage() {
           <div className="info">
             <strong>
               Mata-mata: {knockoutPredictions.predictedCount} de{" "}
-              {knockoutPredictions.matches.length} jogos preenchidos
+              {knockoutPredictions.matches.length} jogos liberados preenchidos
             </strong>
+            <span>
+              Confirmados: {knockoutPredictions.confirmedCount} de{" "}
+              {knockoutPredictions.matches.length} jogos liberados.
+            </span>
             <span>
               Prazo do mata-mata: {formatDeadline(knockoutPredictions.deadline)}.
             </span>

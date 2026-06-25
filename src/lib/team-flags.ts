@@ -63,6 +63,28 @@ export function getTeamTextFlag(team: TeamFlagSource | null | undefined) {
   return team.flagEmoji ?? "";
 }
 
+export function getTeamFlagImageCode(team: TeamFlagSource | null | undefined) {
+  if (!team || getTeamFlagVariant(team)) {
+    return null;
+  }
+
+  const iso2Code = team.iso2Code?.trim().toLowerCase();
+
+  return iso2Code && /^[a-z]{2}$/.test(iso2Code) ? iso2Code : null;
+}
+
+export function getTeamFlagImageSrc(team: TeamFlagSource | null | undefined) {
+  const code = getTeamFlagImageCode(team);
+
+  return code ? `https://flagcdn.com/w40/${code}.png` : null;
+}
+
+export function getTeamFlagImageSrcSet(team: TeamFlagSource | null | undefined) {
+  const code = getTeamFlagImageCode(team);
+
+  return code ? `https://flagcdn.com/w40/${code}.png 1x, https://flagcdn.com/w80/${code}.png 2x` : null;
+}
+
 export function getTeamPlainLabel(
   team: ({ namePt: string } & TeamFlagSource) | null | undefined,
   flagPosition: "before" | "after" = "before",

@@ -19,7 +19,11 @@ the repo can be developed and validated fully on a local machine.
 - Player avatar upload from the dashboard, stored as a small validated image on
   the user record and shown beside names in ranking/prediction widgets.
 - Group-stage predictions with confirmation and immutability.
-- Knockout predictions that stay locked until Round-of-32 fixtures are real teams.
+- Group standings and Round-of-32 fixtures derived from saved official scores,
+  using FIFA 2026 ranking rules and Annexe C third-place pairings as a local
+  fallback.
+- Knockout predictions that unlock progressively: players can draft/confirm
+  each mata-mata match once both teams in that fixture are defined.
 - Champion, runner-up, and third-place picks using the same deadline as group predictions.
 - Scoring engine, placement bonuses, and leaderboard recomputation.
 - Static tournament seed and worker sync based on public OpenFootball data.
@@ -185,9 +189,20 @@ imports 48 teams and 104 matches. Match times are stored in UTC and rendered in
 
 The worker can re-sync the same static source. Live-score and standings provider
 interfaces exist, but no paid provider is required for local development.
+Official scores entered by admins drive the local standings/progression resolver:
+completed groups populate their first- and second-place Round-of-32 slots, while
+best-third-place slots wait until all groups are complete and FIFA Annexe C can
+be applied.
+Knockout prediction forms show only fixtures with both teams defined. Confirmed
+match rows are locked individually so later fixtures can still be added as they
+become known.
 
 The app should not scrape FIFA pages. If a live provider is added later, prefer
 official/public documented APIs first.
+
+Country flags render from team ISO codes using FlagCDN image URLs so they work
+on platforms that do not support native flag emoji rendering, including Windows.
+England and Scotland use inline SVG fallbacks.
 
 ## App Routes
 
@@ -225,12 +240,15 @@ Admin-only:
 Default deadlines are stored in app settings:
 
 - group predictions: `2026-06-11 23:59 America/Sao_Paulo`
-- knockout predictions: `2026-06-27 23:59 America/Sao_Paulo`
+- knockout predictions: `2026-06-27 23:59 America/Sao_Paulo` by default, with
+  fixtures opening progressively as both teams are defined
 - champion/runner-up/third-place picks: same as group predictions
 
 Users can edit drafts until they confirm or the deadline closes. Confirmed
-prediction rows are protected by database triggers. Admin unlocks use an audited
-override path and should be treated as exceptional support operations.
+prediction rows are protected by database triggers. Mata-mata confirmation locks
+only the currently released match rows, allowing future fixtures to open later.
+Admin unlocks use an audited override path and should be treated as exceptional
+support operations.
 
 The public `Palpites` page opens on a game-first comparison tab and can also
 switch to a player-first tab. It lists active players, shows confirmed
@@ -273,6 +291,7 @@ npm run worker -- all
 npm run worker -- static
 npm run worker -- live
 npm run worker -- finalize
+npm run worker -- progression
 npm run worker -- standings
 npm run worker -- open-knockout
 ```
@@ -283,6 +302,8 @@ npm run worker -- open-knockout
 - `static`: sync teams and matches from local OpenFootball data.
 - `live`: attempt live-match sync; safely skipped without a live provider.
 - `finalize`: recompute scores/leaderboard for finished matches.
+- `progression`: calculate group standings from saved scores and resolve
+  Round-of-32 teams when FIFA rules make the slot deterministic.
 - `standings`: attempt official standings sync; safely skipped without a provider.
 - `open-knockout`: enable knockout predictions once Round-of-32 teams are resolved.
 

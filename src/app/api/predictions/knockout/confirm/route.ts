@@ -28,9 +28,11 @@ export async function POST(request: NextRequest) {
   try {
     const predictions = parsePredictionPayload(await request.json());
     const submission = await confirmKnockoutPredictions(user.id, predictions);
-    await sendPredictionSubmissionEmail(user.id, "knockout", submission.id).catch((emailError) => {
-      console.error("Failed to send knockout prediction email", emailError);
-    });
+    if (submission.status === "confirmed") {
+      await sendPredictionSubmissionEmail(user.id, "knockout", submission.id).catch((emailError) => {
+        console.error("Failed to send knockout prediction email", emailError);
+      });
+    }
 
     return Response.json({ ok: true });
   } catch (error) {

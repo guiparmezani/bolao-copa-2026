@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   areRoundOf32FixturesResolved,
   getDefaultKnockoutSubmissionDeadline,
-  getKnockoutSubmissionWindow,
+  isBeforeOrAtDeadline,
   isJsonEnabled,
   parseSettingDate,
 } from "@/lib/predictions/deadlines";
@@ -25,9 +25,20 @@ const knockoutPhases = [
 ] as const;
 
 export type KnockoutPredictionMatch = Match & {
-  homeTeam: { flagEmoji: string; namePt: string } | null;
-  awayTeam: { flagEmoji: string; namePt: string } | null;
+  homeTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
+  awayTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
 };
+
+export function isPredictableKnockoutMatch(
+  match: Pick<Match, "awayPlaceholder" | "awayTeamId" | "homePlaceholder" | "homeTeamId">,
+) {
+  return Boolean(
+    match.homeTeamId &&
+      match.awayTeamId &&
+      !match.homePlaceholder &&
+      !match.awayPlaceholder,
+  );
+}
 
 export async function getKnockoutPredictionDeadline() {
   const setting = await prisma.appSetting.findUnique({
@@ -44,15 +55,15 @@ export async function getPublishedKnockoutMatches() {
       publicationStatus: "published",
     },
     include: {
-      awayTeam: { select: { flagEmoji: true, namePt: true } },
-      homeTeam: { select: { flagEmoji: true, namePt: true } },
+      awayTeam: { select: { flagEmoji: true, iso2Code: true, namePt: true } },
+      homeTeam: { select: { flagEmoji: true, iso2Code: true, namePt: true } },
     },
     orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
   });
 }
 
 async function getKnockoutWindow(deadline: Date) {
-  const [enabledSetting, roundOf32Matches] = await Promise.all([
+  const [enabledSetting, roundOf32Matches, predictableMatchCount] = await Promise.all([
     prisma.appSetting.findUnique({ where: { key: "knockout_predictions_enabled" } }),
     prisma.match.findMany({
       where: { phase: "round_of_32", publicationStatus: "published" },
@@ -63,14 +74,32 @@ async function getKnockoutWindow(deadline: Date) {
         homeTeamId: true,
       },
     }),
+    prisma.match.count({
+      where: {
+        awayPlaceholder: null,
+        awayTeamId: { not: null },
+        homePlaceholder: null,
+        homeTeamId: { not: null },
+        phase: { in: [...knockoutPhases] },
+        publicationStatus: "published",
+      },
+    }),
   ]);
+  const now = new Date();
+  const roundOf32Resolved = areRoundOf32FixturesResolved(roundOf32Matches);
+  const fullyReady = isJsonEnabled(enabledSetting?.value) && roundOf32Resolved;
+  const partiallyReady = predictableMatchCount > 0;
+  const isOpen = partiallyReady && isBeforeOrAtDeadline(now, deadline);
 
-  return getKnockoutSubmissionWindow({
+  return {
     deadline,
-    enabledBySetting: isJsonEnabled(enabledSetting?.value),
-    now: new Date(),
-    roundOf32Resolved: areRoundOf32FixturesResolved(roundOf32Matches),
-  });
+    isFullyReady: fullyReady,
+    isOpen,
+    isReady: partiallyReady,
+    predictableMatchCount,
+    roundOf32Resolved,
+    statusLabel: !partiallyReady ? "Bloqueado" : isOpen ? "Aberto parcial" : "Encerrado",
+  };
 }
 
 export async function getKnockoutPredictionState(userId: string) {
@@ -89,13 +118,18 @@ export async function getKnockoutPredictionState(userId: string) {
       prediction,
     ]),
   );
-  const predictedCount = matches.filter((match) => predictionByMatchId.has(match.id)).length;
+  const predictableMatches = matches.filter(isPredictableKnockoutMatch);
+  const predictedCount = predictableMatches.filter((match) => predictionByMatchId.has(match.id)).length;
+  const confirmedCount = predictableMatches.filter(
+    (match) => predictionByMatchId.get(match.id)?.confirmedAt,
+  ).length;
 
   return {
+    confirmedCount,
     deadline,
     isConfirmed: submission?.status === "confirmed",
-    isComplete: matches.length > 0 && predictedCount === matches.length,
-    matches,
+    isComplete: predictableMatches.length > 0 && predictedCount === predictableMatches.length,
+    matches: predictableMatches,
     predictedCount,
     predictionByMatchId,
     submission,
@@ -118,7 +152,7 @@ function assertEditable({
 
   if (!window.isReady) {
     throw new PredictionRuleError(
-      "Os palpites do mata-mata ainda não foram liberados.",
+      "Ainda não há jogos do mata-mata liberados para palpite.",
       403,
     );
   }
@@ -160,6 +194,10 @@ async function getEditableKnockoutContext(userId: string) {
   const [matches, existingSubmission, window] = await Promise.all([
     prisma.match.findMany({
       where: {
+        awayPlaceholder: null,
+        awayTeamId: { not: null },
+        homePlaceholder: null,
+        homeTeamId: { not: null },
         phase: { in: [...knockoutPhases] },
         publicationStatus: "published",
       },
@@ -167,6 +205,7 @@ async function getEditableKnockoutContext(userId: string) {
     }),
     prisma.predictionSubmission.findUnique({
       where: { userId_phaseGroup: { userId, phaseGroup: "knockout" } },
+      include: { matchPredictions: true },
     }),
     getKnockoutWindow(deadline),
   ]);
@@ -177,7 +216,14 @@ async function getEditableKnockoutContext(userId: string) {
     window,
   });
 
-  return { matches };
+  const confirmedMatchIds = new Set(
+    (existingSubmission?.matchPredictions ?? [])
+      .filter((prediction) => prediction.confirmedAt)
+      .map((prediction) => prediction.matchId),
+  );
+  const editableMatches = matches.filter((match) => !confirmedMatchIds.has(match.id));
+
+  return { matches: editableMatches };
 }
 
 export async function saveKnockoutPredictionDraft(
@@ -250,14 +296,15 @@ export async function confirmKnockoutPredictions(
     }
 
     await tx.matchPrediction.updateMany({
-      where: { submissionId: submission.id, userId },
+      where: {
+        matchId: { in: predictions.map((prediction) => prediction.matchId) },
+        submissionId: submission.id,
+        userId,
+      },
       data: { confirmedAt: now },
     });
 
-    return tx.predictionSubmission.update({
-      where: { id: submission.id },
-      data: { confirmedAt: now, status: "confirmed" },
-    });
+    return submission;
   });
 }
 

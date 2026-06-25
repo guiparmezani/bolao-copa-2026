@@ -1,6 +1,6 @@
 # Bolão dos Facabundos 2026 Tech Spec
 
-Last updated: 2026-06-12
+Last updated: 2026-06-24
 
 ## Purpose
 
@@ -138,9 +138,10 @@ Knockout match rules:
 
 Implementation implication:
 
-- Prefer provider/FIFA official standings and bracket assignments over local derivation.
-- The local app may calculate standings as a validation fallback, but should not override provider-confirmed Round-of-32 participants or Annex C best-third-place pairings.
-- Knockout prediction entry opens only after Round-of-32 match participants are official, non-placeholder teams.
+- Prefer provider/FIFA official standings and bracket assignments over local derivation when a trusted provider is configured.
+- Because production currently uses manual admin score entry, the app calculates local group standings from saved official scores and applies FIFA Annexe C for best-third-place Round-of-32 pairings.
+- The local resolver should not override provider-confirmed Round-of-32 participants if a trusted provider is added later.
+- Knockout prediction entry opens progressively per fixture once both teams in that fixture are official, non-placeholder teams.
 
 ## Recommended Stack
 
@@ -316,8 +317,8 @@ Deployment is not part of the initial implementation sprint. Build and validate 
 
 `/predictions/knockout`
 
-- Hidden or locked until knockout fixtures are defined.
-- Same UX as group predictions.
+- Hidden or locked until at least one knockout fixture has both teams defined.
+- Same UX as group predictions, but rows unlock and lock individually as fixtures become known.
 - Uses placeholder labels before teams are known only for schedule display, not for prediction submission.
 
 `/predictions/winners`
@@ -540,7 +541,7 @@ Submission groups:
 Recommended default deadlines:
 
 - Group predictions close at 2026-06-11 23:59 `America/Sao_Paulo`.
-- Knockout predictions open only when the provider confirms all Round-of-32 participants and fixtures are non-placeholder.
+- Knockout predictions open per match when the provider/local resolver confirms both participants and the fixture is non-placeholder.
 - Knockout predictions close at 2026-06-27 23:59 `America/Sao_Paulo`.
 - Winner/placement picks close at the same deadline as group predictions: 2026-06-11 23:59 `America/Sao_Paulo`.
 - Public prediction reveal happens per match as soon as that match is finished. Before a match is finished, submitted predictions for that match stay hidden to prevent copying.
@@ -898,13 +899,19 @@ Worker sync jobs:
   - Runs after any match moves to `finished`.
   - Stores final normalized goals, penalty data, and raw payload.
   - Recomputes affected prediction scores and leaderboard.
+- `syncTournamentProgression`
+  - Runs after manual result saves, worker finalization, and admin sync.
+  - Calculates group standings from finished group matches.
+  - Resolves first- and second-place Round-of-32 slots as soon as each group is complete and rankable.
+  - Resolves best-third-place slots only after all 12 groups are complete and FIFA Annexe C identifies the exact pairing combination.
+  - Leaves unresolved or tie-dependent slots as placeholders so knockout predictions stay locked.
 - `openKnockoutPredictionsIfReady`
   - Checks all Round-of-32 fixtures have real participants and no placeholders.
   - Sets `knockout_submission_open_at` or flips a setting.
   - Notifies admins in logs.
 - `syncOfficialStandings`
   - Stores official group standings and qualification status when available.
-  - Uses FIFA tiebreaker implementation only as a fallback/validation check.
+  - Uses FIFA tiebreaker implementation only as a fallback/validation check when provider data exists.
   - Never overwrites official provider-confirmed Round-of-32 teams with a local guess.
 
 Provider normalization should convert every provider response into the app's internal `NormalizedMatch` shape before database writes.
@@ -1200,8 +1207,8 @@ Optional:
 
 - Existing users can log in; new public signup is closed.
 - Users can submit group predictions and cannot alter them after confirmation.
-- Knockout prediction form is unavailable until the knockout fixtures are fully defined.
-- Users can submit knockout predictions and cannot alter them after confirmation.
+- Knockout prediction form is unavailable until at least one knockout fixture is fully defined.
+- Users can submit knockout predictions progressively; each confirmed match row cannot be altered after confirmation.
 - Users can submit champion, runner-up, and third-place picks using the 2022 bolão bonus rules.
 - Admins can publish imported/manual matches, manage users, override results, inspect submissions, recompute scores, and review audit logs.
 - Homepage shows a live leaderboard.

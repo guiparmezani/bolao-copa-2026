@@ -1,4 +1,9 @@
-import { getTeamFlagVariant, type TeamFlagSource } from "@/lib/team-flags";
+import {
+  getTeamFlagImageSrc,
+  getTeamFlagImageSrcSet,
+  getTeamFlagVariant,
+  type TeamFlagSource,
+} from "@/lib/team-flags";
 
 type TeamFlagProps = {
   className?: string;
@@ -46,6 +51,23 @@ export function TeamFlag({ className, fallback = "", flag, team }: TeamFlagProps
         className={classNames("team-flag-icon", `team-flag-icon--${variant}`, className)}
       >
         {variant === "england" ? <EnglandFlagSvg /> : <ScotlandFlagSvg />}
+      </span>
+    );
+  }
+
+  const flagImageSrc = getTeamFlagImageSrc(source);
+
+  if (flagImageSrc) {
+    return (
+      <span aria-hidden="true" className={classNames("team-flag-icon", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          alt=""
+          decoding="async"
+          loading="lazy"
+          src={flagImageSrc}
+          srcSet={getTeamFlagImageSrcSet(source) ?? undefined}
+        />
       </span>
     );
   }

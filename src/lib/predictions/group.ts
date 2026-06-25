@@ -15,8 +15,8 @@ export type PredictionInput = {
 };
 
 export type GroupPredictionMatch = Match & {
-  homeTeam: { flagEmoji: string; namePt: string } | null;
-  awayTeam: { flagEmoji: string; namePt: string } | null;
+  homeTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
+  awayTeam: { flagEmoji: string; iso2Code: string | null; namePt: string } | null;
 };
 
 export type GroupPredictionState = Awaited<ReturnType<typeof getGroupPredictionState>>;
@@ -49,12 +49,14 @@ export async function getPublishedGroupMatches() {
       awayTeam: {
         select: {
           flagEmoji: true,
+          iso2Code: true,
           namePt: true,
         },
       },
       homeTeam: {
         select: {
           flagEmoji: true,
+          iso2Code: true,
           namePt: true,
         },
       },
