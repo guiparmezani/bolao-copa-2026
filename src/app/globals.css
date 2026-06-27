@@ -2044,17 +2044,64 @@ h3 {
 }
 
 .ranking-card {
-  overflow: hidden;
+  overflow: visible;
+}
+
+.ranking-table-region {
+  position: relative;
+}
+
+.ranking-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--line);
+  background: rgba(8, 25, 22, 0.98);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  scrollbar-width: none;
+}
+
+.ranking-sticky-header::-webkit-scrollbar {
+  display: none;
+}
+
+.ranking-sticky-row {
+  width: 100%;
+  min-width: 1206px;
+  display: grid;
+  grid-template-columns:
+    minmax(66px, 66fr)
+    minmax(280px, 280fr)
+    minmax(132px, 132fr)
+    minmax(196px, 196fr)
+    minmax(132px, 132fr)
+    minmax(132px, 132fr)
+    minmax(150px, 150fr)
+    minmax(118px, 118fr);
+}
+
+.ranking-sticky-cell {
+  padding: 13px 14px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .ranking-table-wrap {
   overflow-x: auto;
+  position: relative;
 }
 
 .ranking-table {
   width: 100%;
   min-width: 1206px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
 }
 
@@ -2090,14 +2137,18 @@ h3 {
   vertical-align: middle;
 }
 
-.ranking-table thead th {
-  border-top: 0;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 950;
-  text-transform: uppercase;
+.ranking-table-head-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+.ranking-table-head-hidden th {
+  padding: 0;
+  border: 0;
 }
 
 .ranking-table tbody tr:hover {

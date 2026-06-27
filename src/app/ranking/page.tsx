@@ -1,8 +1,8 @@
 import type { Match, Prisma } from "@prisma/client";
 
-import { UserIdentity } from "@/components/user-avatar";
 import { prisma } from "@/lib/prisma";
 import { getPlacementBonuses } from "@/lib/rules";
+import { RankingTable, type RankingTableRow } from "./ranking-table";
 
 export const dynamic = "force-dynamic";
 
@@ -11,33 +11,12 @@ type MatchWithTeams = Pick<
   "awayGoals" | "awayTeamId" | "homeGoals" | "homeTeamId" | "winnerTeamId"
 >;
 
-type RankingRow = {
-  avatarImageDataUrl: string | null;
-  displayName: string;
-  exactCount: number;
-  oneTeamGoalsCount: number;
-  outcomeCount: number;
-  placementCount: number;
-  placementPoints: number;
-  rank: number;
-  scoredMatches: number;
-  totalPoints: number;
-  userId: string;
-};
-
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined) {
   if (value === null || value === undefined) {
     return 0;
   }
 
   return typeof value === "number" ? value : value.toNumber();
-}
-
-function formatPoints(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
-  }).format(value);
 }
 
 function formatUpdatedAt(value: Date | null) {
@@ -141,7 +120,7 @@ function groupCountMap(groups: Array<{ _count: { _all: number }; userId: string 
   return new Map(groups.map((group) => [group.userId, group._count._all]));
 }
 
-function compareRows(a: Omit<RankingRow, "rank">, b: Omit<RankingRow, "rank">) {
+function compareRows(a: Omit<RankingTableRow, "rank">, b: Omit<RankingTableRow, "rank">) {
   return (
     b.totalPoints - a.totalPoints ||
     b.exactCount - a.exactCount ||
@@ -151,7 +130,7 @@ function compareRows(a: Omit<RankingRow, "rank">, b: Omit<RankingRow, "rank">) {
   );
 }
 
-function isSameScore(a: Omit<RankingRow, "rank">, b: Omit<RankingRow, "rank">) {
+function isSameScore(a: Omit<RankingTableRow, "rank">, b: Omit<RankingTableRow, "rank">) {
   return (
     a.totalPoints === b.totalPoints &&
     a.exactCount === b.exactCount &&
@@ -256,7 +235,7 @@ async function getRankingRows() {
     };
   });
   const sortedRows = rowsWithoutRank.sort(compareRows);
-  const rankedRows: RankingRow[] = [];
+  const rankedRows: RankingTableRow[] = [];
 
   for (const [index, row] of sortedRows.entries()) {
     const previousRow = sortedRows[index - 1];
@@ -323,61 +302,7 @@ export default async function RankingPage() {
             <span>Quando houver jogadores ativos, a classificação aparece aqui.</span>
           </div>
         ) : (
-          <div className="ranking-table-wrap">
-            <table className="ranking-table">
-              <colgroup>
-                <col className="ranking-col-position" />
-                <col className="ranking-col-player" />
-                <col className="ranking-col-method" />
-                <col className="ranking-col-outcome" />
-                <col className="ranking-col-method" />
-                <col className="ranking-col-method" />
-                <col className="ranking-col-usage" />
-                <col className="ranking-col-total" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th className="ranking-number-cell" scope="col">Pos.</th>
-                  <th scope="col">Jogador</th>
-                  <th className="ranking-number-cell" scope="col">Gol de um time</th>
-                  <th className="ranking-number-cell" scope="col">G/P/Empate</th>
-                  <th className="ranking-number-cell" scope="col">Placar exato</th>
-                  <th className="ranking-number-cell" scope="col">Campeões</th>
-                  <th className="ranking-number-cell" scope="col">Aproveitamento</th>
-                  <th className="ranking-number-cell" scope="col">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.userId}>
-                    <td className="ranking-position ranking-number-cell">{row.rank}</td>
-                    <th className="ranking-player" scope="row">
-                      <UserIdentity user={row} />
-                    </th>
-                    <td className="ranking-number-cell">
-                      <strong>{row.oneTeamGoalsCount}</strong>
-                    </td>
-                    <td className="ranking-number-cell">
-                      <strong>{row.outcomeCount}</strong>
-                    </td>
-                    <td className="ranking-number-cell">
-                      <strong>{row.exactCount}</strong>
-                    </td>
-                    <td className="ranking-number-cell">
-                      <strong>{row.placementCount}</strong>
-                    </td>
-                    <td className="ranking-number-cell">
-                      <strong>{row.scoredMatches}</strong>
-                      <span>pontuados</span>
-                    </td>
-                    <td className="ranking-total ranking-number-cell">
-                      <strong>{formatPoints(row.totalPoints)}</strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RankingTable rows={rows} />
         )}
       </section>
     </main>
