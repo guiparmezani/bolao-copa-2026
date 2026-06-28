@@ -206,7 +206,7 @@ export default async function Home() {
             <h1>Bolão dos Facabundos Copa 2026</h1>
             <p>
               Ranking, calendário e regras em uma experiência direta para
-              acompanhar o bolão e tirar uma grana.
+              acompanhar o bolão e tirar uma grana. Feudalismoa xiter.
             </p>
             <div className="chips">
               <Link className="button primary" href="/login">

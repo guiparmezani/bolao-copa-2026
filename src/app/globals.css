@@ -1881,7 +1881,7 @@ h3 {
 
 .game-prediction-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 92px minmax(112px, 0.34fr);
+  grid-template-columns: minmax(0, 1fr) 92px 58px;
   gap: 10px;
   align-items: center;
   padding: 12px 14px;
@@ -1892,7 +1892,8 @@ h3 {
   border-top: 0;
 }
 
-.game-prediction-table.no-comparison .game-prediction-row {
+.game-prediction-table.no-comparison .game-prediction-row,
+.game-prediction-table.no-points .game-prediction-row {
   grid-template-columns: minmax(0, 1fr) 92px;
 }
 
@@ -1956,6 +1957,25 @@ h3 {
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
+}
+
+.prediction-points-cell {
+  min-width: 0;
+  justify-self: end;
+  color: rgba(244, 255, 240, 0.74);
+  font-size: 0.76rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.prediction-points-cell.is-zero {
+  color: rgba(188, 204, 196, 0.62);
+}
+
+.game-prediction-row.is-exact-result .prediction-points-cell {
+  color: rgba(243, 197, 59, 0.9);
 }
 
 .dual-prediction-row {
@@ -2862,6 +2882,10 @@ h3 {
   .game-prediction-row {
     grid-template-columns: minmax(0, 1fr) 72px;
     align-items: start;
+  }
+
+  .game-prediction-table.has-points .game-prediction-row {
+    grid-template-columns: minmax(0, 1fr) 72px 46px;
   }
 
   .game-prediction-row .schedule-score {

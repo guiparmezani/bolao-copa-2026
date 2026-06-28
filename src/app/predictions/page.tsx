@@ -114,6 +114,11 @@ async function getMatchPredictionScores(matchId: string | null) {
     select: {
       awayGoals: true,
       homeGoals: true,
+      score: {
+        select: {
+          totalPoints: true,
+        },
+      },
       userId: true,
     },
   });
@@ -290,75 +295,6 @@ function matchPredictionByUserId(predictions: MatchPredictionScore[]) {
   return new Map(predictions.map((prediction) => [prediction.userId, prediction]));
 }
 
-function predictionOutcome(prediction: MatchPredictionScore | undefined) {
-  if (!prediction) {
-    return null;
-  }
-
-  if (prediction.homeGoals > prediction.awayGoals) {
-    return "home";
-  }
-
-  if (prediction.awayGoals > prediction.homeGoals) {
-    return "away";
-  }
-
-  return "draw";
-}
-
-function predictionComparisonLabel({
-  currentUserId,
-  playerPrediction,
-  selfPrediction,
-  userId,
-}: {
-  currentUserId?: string;
-  playerPrediction?: MatchPredictionScore;
-  selfPrediction?: MatchPredictionScore;
-  userId: string;
-}) {
-  if (!currentUserId || !selfPrediction) {
-    return null;
-  }
-
-  if (userId === currentUserId) {
-    return "Seu palpite";
-  }
-
-  if (!playerPrediction) {
-    return "Sem palpite";
-  }
-
-  if (
-    playerPrediction.homeGoals === selfPrediction.homeGoals &&
-    playerPrediction.awayGoals === selfPrediction.awayGoals
-  ) {
-    return "Mesmo placar";
-  }
-
-  if (predictionOutcome(playerPrediction) === predictionOutcome(selfPrediction)) {
-    return "Mesmo resultado";
-  }
-
-  return "Diferente";
-}
-
-function predictionComparisonClass(label: string | null) {
-  if (label === "Seu palpite" || label === "Mesmo placar") {
-    return "is-match";
-  }
-
-  if (label === "Mesmo resultado") {
-    return "is-result";
-  }
-
-  if (label === "Sem palpite") {
-    return "is-empty";
-  }
-
-  return "is-different";
-}
-
 function isExactPredictionForMatch(
   prediction: MatchPredictionScore | undefined,
   match: PredictionMatch,
@@ -369,6 +305,10 @@ function isExactPredictionForMatch(
     prediction?.homeGoals === match.homeGoals &&
     prediction.awayGoals === match.awayGoals
   );
+}
+
+function predictionPoints(prediction: MatchPredictionScore | undefined) {
+  return prediction?.score?.totalPoints?.toNumber() ?? null;
 }
 
 function matchStatusFact(match: PredictionMatch) {
@@ -686,6 +626,8 @@ function GamePredictionComparison({
     );
   }
 
+  const showPoints = hasFinalScore(match);
+
   return (
     <section className="card game-comparison-card">
       <div className="card-head">
@@ -710,27 +652,23 @@ function GamePredictionComparison({
         </div>
       ) : (
         <div
-          className={
-            signedInPlayer
-              ? "game-prediction-table"
-              : "game-prediction-table no-comparison"
-          }
+          className={showPoints ? "game-prediction-table has-points" : "game-prediction-table no-points"}
           aria-label="Palpites por jogo"
         >
           {users.map((user) => {
             const prediction = predictionsByUser.get(user.id);
             const isExactResult = isExactPredictionForMatch(prediction, match);
-            const comparisonLabel = predictionComparisonLabel({
-              currentUserId: signedInPlayer?.id,
-              playerPrediction: prediction,
-              selfPrediction,
-              userId: user.id,
-            });
-            const comparisonClass = predictionComparisonClass(comparisonLabel);
+            const points = predictionPoints(prediction);
             const rowClassName = [
               "game-prediction-row",
               signedInPlayer?.id === user.id ? "is-current-user" : "",
               isExactResult ? "is-exact-result" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            const pointsClassName = [
+              "prediction-points-cell",
+              points === 0 ? "is-zero" : "",
             ]
               .filter(Boolean)
               .join(" ");
@@ -742,9 +680,9 @@ function GamePredictionComparison({
               >
                 <UserIdentity linkToPredictions={false} user={user} />
                 <span className="schedule-score">{scoreFromPrediction(prediction)}</span>
-                {signedInPlayer ? (
-                  <span className={`prediction-compare-status ${comparisonClass}`}>
-                    {comparisonLabel}
+                {showPoints ? (
+                  <span className={pointsClassName}>
+                    {points === null ? "" : formatPredictionPoints(points)}
                   </span>
                 ) : null}
               </div>
